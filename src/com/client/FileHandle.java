@@ -26,7 +26,7 @@ public class FileHandle {
 		return this.chunkHandles;
 	}
 	
-	public void setChunkHandle(Vector<String> chunkHandles) {
+	public void setChunkHandles(Vector<String> chunkHandles) {
 		this.chunkHandles = chunkHandles;
 	}
 	
