@@ -8,7 +8,7 @@ import javafx.util.Pair;
 public class FileHandle {
 	
 	// List the sequence of chunkhandles that make up the file
-	// Vector<'chunkHandles'>
+	// Vector<'chunkHandle'>
 	private Vector<String> chunkHandles;
 	
 	// Stores chunkhandles as keys
