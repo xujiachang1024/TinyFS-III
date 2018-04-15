@@ -28,7 +28,10 @@ public class Master {
 		
 		// Create a new HashMap and populate it with '/'
 		directories = new HashMap<String, HashSet<String>>();
-		directories.put("/", new HashSet<String>());		
+		directories.put("/", new HashSet<String>());
+		
+		files = new HashMap<String, Vector<String>>();
+		chunkLocations = new HashMap<String, Vector<Pair<String, String>>>();
 	}
 	/**
 	 * Creates the specified dirname in the src directory Returns
