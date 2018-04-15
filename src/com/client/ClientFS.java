@@ -27,6 +27,9 @@ public class ClientFS {
 	 * "CSCI485"), CreateDir("/Shahram/CSCI485/", "Lecture1")
 	 */
 	public FSReturnVals CreateDir(String src, String dirname) {
+		// Hashmap <dirString, list of files/dirs)
+		// check if src is a dir (ending '/')
+		// see if src exist in hashmap if yes, add dirname to its list, and append src+dirname to key with an empty list
 		return null;
 	}
 
