@@ -1,5 +1,7 @@
 package com.client;
 
+import com.master.Master;
+
 public class ClientFS {
 
 	public enum FSReturnVals {
@@ -16,6 +18,12 @@ public class ClientFS {
 		NotImplemented, // Specific to CSCI 485 and its unit tests
 		Success, //Returned when a method succeeds
 		Fail //Returned when a method fails
+	}
+	
+	// Temporary Master instantiation and constructor for local testing
+	private static Master master;
+	public ClientFS() {
+		master = new Master();
 	}
 
 	/**
@@ -75,7 +83,7 @@ public class ClientFS {
 	 * Example usage: Createfile("/Shahram/CSCI485/Lecture1/", "Intro.pptx")
 	 */
 	public FSReturnVals CreateFile(String tgtdir, String filename) {
-		return null;
+		return master.CreateFile(tgtdir, filename);
 	}
 
 	/**
@@ -86,7 +94,7 @@ public class ClientFS {
 	 * Example usage: DeleteFile("/Shahram/CSCI485/Lecture1/", "Intro.pptx")
 	 */
 	public FSReturnVals DeleteFile(String tgtdir, String filename) {
-		return null;
+		return master.DeleteFile(tgtdir, filename);
 	}
 
 	/**
@@ -97,7 +105,7 @@ public class ClientFS {
 	 * Example usage: OpenFile("/Shahram/CSCI485/Lecture1/Intro.pptx", FH1)
 	 */
 	public FSReturnVals OpenFile(String FilePath, FileHandle ofh) {
-		return null;
+		return master.OpenFile(FilePath, ofh);
 	}
 
 	/**
@@ -106,7 +114,11 @@ public class ClientFS {
 	 * Example usage: CloseFile(FH1)
 	 */
 	public FSReturnVals CloseFile(FileHandle ofh) {
-		return null;
+		if (ofh == null)
+			return ClientFS.FSReturnVals.BadHandle;
+		
+		ofh = null;
+		return ClientFS.FSReturnVals.Success;
 	}
 
 }
