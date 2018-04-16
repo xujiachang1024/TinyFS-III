@@ -3,6 +3,12 @@ package com.master;
 import com.client.ClientFS;
 import com.client.FileHandle;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Vector;
@@ -12,6 +18,8 @@ import com.client.ClientFS.FSReturnVals;
 import javafx.util.Pair;
 
 public class Master {
+	
+	public static final String masterBackupFileName = "masterBackup";
 	
 	// HashMap<'full folder path w/ trailing '/'', 'set of files/folders in it'>
 	private static HashMap<String, HashSet<String>> directories;
@@ -26,10 +34,68 @@ public class Master {
 	
 	public Master() {
 		
+		// initialize in-memory data structure
+		initializeMemory();	
+	}
+	
+	private void initializeMemory() {
 		// Create a new HashMap and populate it with '/'
 		directories = new HashMap<String, HashSet<String>>();
-		directories.put("/", new HashSet<String>());		
+		directories.put("/", new HashSet<String>());
+		
+		files = new HashMap<String, Vector<String>>();
+		
+		chunkLocations = new HashMap<String, Vector<Pair<String, String>>>();
 	}
+	
+	private void saveMasterBackup() {
+		FileOutputStream fos = null;
+		ObjectOutputStream oos = null;
+		try {
+			fos = new FileOutputStream(masterBackupFileName);
+			oos = new ObjectOutputStream(fos);
+			oos.writeObject(directories);
+			oos.writeObject(files);
+			oos.writeObject(chunkLocations);
+		} catch (IOException ioe) {
+			ioe.printStackTrace();
+		} finally {
+			if (oos != null) {
+				try {
+					oos.close();
+				} catch (IOException ioe) {
+					ioe.printStackTrace();
+				}
+			}
+			if (fos != null) {
+				try {
+					fos.close();
+				} catch (IOException ioe) {
+					ioe.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	private void readMasterBackup() {
+		FileInputStream fis = null;
+		ObjectInputStream ois = null;
+		try {
+			fis = new FileInputStream(masterBackupFileName);
+			ois = new ObjectInputStream(fis);
+			directories = (HashMap<String, HashSet<String>>)ois.readObject();
+			files = (HashMap<String, Vector<String>>)ois.readObject();
+			chunkLocations = (HashMap<String, Vector<Pair<String, String>>>)ois.readObject();
+		} catch (FileNotFoundException fnfe) {
+			fnfe.printStackTrace();
+		} catch (IOException ioe) {
+			ioe.printStackTrace();
+		} catch (ClassNotFoundException cnfe) {
+			cnfe.printStackTrace();
+		}
+	}
+	
 	/**
 	 * Creates the specified dirname in the src directory Returns
 	 * SrcDirNotExistent if the src directory does not exist Returns
