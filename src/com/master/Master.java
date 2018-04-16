@@ -38,6 +38,9 @@ public class Master {
 		initializeMemory();	
 	}
 	
+	/**
+	 * Initialize in-memory data structure for the master node
+	 */
 	private void initializeMemory() {
 		// Create a new HashMap and populate it with '/'
 		directories = new HashMap<String, HashSet<String>>();
@@ -48,6 +51,9 @@ public class Master {
 		chunkLocations = new HashMap<String, Vector<Pair<String, String>>>();
 	}
 	
+	/**
+	 * Save master backup to a designated file
+	 */
 	private void saveMasterBackup() {
 		FileOutputStream fos = null;
 		ObjectOutputStream oos = null;
@@ -77,6 +83,9 @@ public class Master {
 		}
 	}
 	
+	/**
+	 * Read master backup from a designated file
+	 */
 	@SuppressWarnings("unchecked")
 	private void readMasterBackup() {
 		FileInputStream fis = null;
