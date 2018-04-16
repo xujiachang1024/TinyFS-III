@@ -11,6 +11,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.UUID;
 import java.util.Vector;
 
 import com.client.ClientFS.FSReturnVals;
@@ -27,9 +28,8 @@ public class Master {
 	// HashMap<'full file path', 'sequence of chunkhandles'>
 	private static HashMap<String, Vector<String>> files;
 	
-	// HashMap<'chunkhandle', Vector<Pair<'IP addr', 'alias'>>>
-	// Alias is the local chunkhandle that may be different than the chunkhandle stored on Master
-	private static HashMap<String, Vector<Pair<String, String>>> chunkLocations;
+	// HashMap<'chunkhandle', Vector<'ip addr'>>
+	private static HashMap<String, Vector<String>> chunkLocations;
 	
 	
 	public Master() {
@@ -48,7 +48,7 @@ public class Master {
 		
 		files = new HashMap<String, Vector<String>>();
 		
-		chunkLocations = new HashMap<String, Vector<Pair<String, String>>>();
+		chunkLocations = new HashMap<String, Vector<String>>();
 	}
 	
 	/**
@@ -95,7 +95,7 @@ public class Master {
 			ois = new ObjectInputStream(fis);
 			directories = (HashMap<String, HashSet<String>>)ois.readObject();
 			files = (HashMap<String, Vector<String>>)ois.readObject();
-			chunkLocations = (HashMap<String, Vector<Pair<String, String>>>)ois.readObject();
+			chunkLocations = (HashMap<String, Vector<String>>)ois.readObject();
 		} catch (FileNotFoundException fnfe) {
 			fnfe.printStackTrace();
 		} catch (IOException ioe) {
@@ -191,9 +191,15 @@ public class Master {
 		// Add this to the list of files under the target dir
 		directories.get(tgtdir).add(tgtdir+filename);
 		
-		// TODO: Tell the chunkserver(s) to create a new chunk?
+		// Create a unique uuid for the chunk and store it in the files namespace
+		UUID uuid = UUID.randomUUID();
+		files.get(tgtdir+filename).add(uuid.toString());
 		
+		// TODO: use the UUID to tell the chunkserver(s) to create an empty initial empty chunk
+		// If successful add the current chunkserver ip addr to chunk namespace
 		return ClientFS.FSReturnVals.Success;
+		
+		// Else return failure
 	}
 
 	/**
@@ -219,7 +225,7 @@ public class Master {
 		
 		// Remove chunks from chunkLocations
 		for (String chunkHandle : chunks) {
-			Vector<Pair<String, String>> locations = chunkLocations.get(chunkHandle);
+			Vector<String> locations = chunkLocations.get(chunkHandle);
 			chunkLocations.remove(chunkHandle);
 			
 			// TODO: remove the chunks from the chunkserver(s)?
@@ -242,7 +248,7 @@ public class Master {
 		
 		// If it exists, populate the FileHandle
 		ofh.setChunkHandles(files.get(FilePath));
-		HashMap<String, Vector<Pair<String, String>>> locations = new HashMap<String, Vector<Pair<String, String>>>();
+		HashMap<String, Vector<String>> locations = new HashMap<String, Vector<String>>();
 		for (String chunkHandle : ofh.getChunkHandles()) {
 			locations.put(chunkHandle, chunkLocations.get(chunkHandle));
 		}

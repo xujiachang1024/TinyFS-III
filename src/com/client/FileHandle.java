@@ -11,15 +11,12 @@ public class FileHandle {
 	// Vector<'chunkHandle'>
 	private Vector<String> chunkHandles;
 	
-	// Stores chunkhandles as keys
-	// Vector of all the locations (chunkservers' IP) that hold that chunk and its "alias"
-	// on that specific chunkserver
-	// HashMap<'chunkHandle', Vector<Pair<'IP addr', 'alias'>>>
-	private HashMap<String, Vector<Pair<String, String>>> chunkLocations;
+	// HashMap<'chunkHandle', Vector<'ip addr'>>
+	private HashMap<String, Vector<String>> chunkLocations;
 	
 	public FileHandle() {
 		this.chunkHandles = new Vector<String>();
-		this.chunkLocations = new HashMap<String, Vector<Pair<String,String>>>();
+		this.chunkLocations = new HashMap<String, Vector<String>>();
 	}
 	
 	public Vector<String> getChunkHandles() {
@@ -30,11 +27,11 @@ public class FileHandle {
 		this.chunkHandles = chunkHandles;
 	}
 	
-	public HashMap<String, Vector<Pair<String, String>>> getChunkLocations() {
+	public HashMap<String, Vector<String>> getChunkLocations() {
 		return this.chunkLocations;
 	}
 	
-	public void setChunkLocations(HashMap<String, Vector<Pair<String, String>>> chunkLocations) {
+	public void setChunkLocations(HashMap<String, Vector<String>> chunkLocations) {
 		this.chunkLocations = chunkLocations;
 	}
 }
