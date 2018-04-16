@@ -12,6 +12,7 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 //import java.util.Arrays;
+import java.util.UUID;
 
 import com.client.Client;
 import com.interfaces.ChunkServerInterface;
@@ -27,7 +28,7 @@ public class ChunkServer implements ChunkServerInterface {
 	public final static String ClientConfigFile = "ClientConfig.txt";
 	
 	//Used for the file system
-	public static long counter;
+	//public static long counter;
 	
 	public static int PayloadSZ = Integer.SIZE/Byte.SIZE;  //Number of bytes in an integer
 	public static int CMDlength = Integer.SIZE/Byte.SIZE;  //Number of bytes in an integer  
@@ -45,19 +46,19 @@ public class ChunkServer implements ChunkServerInterface {
 	 * Initialize the chunk server
 	 */
 	public ChunkServer(){
-		File dir = new File(filePath);
-		File[] fs = dir.listFiles();
-
-		if(fs.length == 0){
-			counter = 0;
-		}else{
-			long[] cntrs = new long[fs.length];
-			for (int j=0; j < cntrs.length; j++)
-				cntrs[j] = Long.valueOf( fs[j].getName() ); 
-			
-			Arrays.sort(cntrs);
-			counter = cntrs[cntrs.length - 1];
-		}
+//		File dir = new File(filePath);
+//		File[] fs = dir.listFiles();
+//
+//		if(fs.length == 0){
+//			counter = 0;
+//		}else{
+//			long[] cntrs = new long[fs.length];
+//			for (int j=0; j < cntrs.length; j++)
+//				cntrs[j] = Long.valueOf( fs[j].getName() ); 
+//			
+//			Arrays.sort(cntrs);
+//			counter = cntrs[cntrs.length - 1];
+//		}
 	}
 	
 	/**
@@ -65,8 +66,11 @@ public class ChunkServer implements ChunkServerInterface {
 	 * Return the chunk handle of the last chunk in the file.
 	 */
 	public String createChunk() {
-		counter++;
-		return String.valueOf(counter);
+//		counter++;
+//		return String.valueOf(counter);
+		
+		UUID uuid = UUID.randomUUID();
+		return uuid.toString();
 	}
 	
 	/**
