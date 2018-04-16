@@ -44,7 +44,6 @@ public class Master {
 		directories.put("/", new HashSet<String>());
 		
 		files = new HashMap<String, Vector<String>>();
-<<<<<<< HEAD
 		
 		chunkLocations = new HashMap<String, Vector<Pair<String, String>>>();
 	}
@@ -95,9 +94,6 @@ public class Master {
 		} catch (ClassNotFoundException cnfe) {
 			cnfe.printStackTrace();
 		}
-=======
-		chunkLocations = new HashMap<String, Vector<Pair<String, String>>>();
->>>>>>> 19d1ff156a024bb23743268b9ec948ad611e8cf1
 	}
 	
 	/**
