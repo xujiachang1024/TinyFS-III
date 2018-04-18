@@ -336,6 +336,8 @@ public class Master {
 		
 		// TODO: use the UUID to tell the chunkserver(s) to create an empty initial empty chunk
 		// If successful add the current chunkserver ip addr to chunk namespace
+		// Create an empty Chunk with the header
+		// Header : 8 bytes (4 bytes = # of records, 4 bytes = offset for the next free byte)
 		return ClientFS.FSReturnVals.Success;
 		
 		// Else return failure
