@@ -121,11 +121,12 @@ public class Master {
 		// check if src is a dir (ending '/')
 		// see if src exist in hashmap if yes, add dirname to its list, and append src+dirname to key with an empty list
 		
+		// Enforce "src" to end with "/"
 		if (!src.endsWith("/")) {
 			src += "/";
 		}
 		
-		// Create the full path of the destination directory
+		// Create the full path of the destination directory (end with "/")
 		String destDirFullPath = src + dirname;
 		if (!destDirFullPath.endsWith("/")) {
 			destDirFullPath += "/";
@@ -160,11 +161,12 @@ public class Master {
 	 */
 	public FSReturnVals DeleteDir(String src, String dirname) {
 		
+		// Enforce "src" to end with "/"
 		if (!src.endsWith("/")) {
 			src += "/";
 		}
 		
-		// Create the full path of the destination directory
+		// Create the full path of the destination directory (end with "/")
 		String destDirFullPath = src + dirname;
 		if (!destDirFullPath.endsWith("/")) {
 			destDirFullPath += "/";
@@ -180,7 +182,7 @@ public class Master {
 			return ClientFS.FSReturnVals.DestDirExists;
 		}
 		
-		// TODO: what about any subdirectories under "destDirFullPath"
+		// TODO: what about any sub-directories under "destDirFullPath"
 		// TODO: maybe we need a DFS delete protocol
 		directories.get(src).remove(destDirFullPath);
 		directories.remove(destDirFullPath);
@@ -198,9 +200,12 @@ public class Master {
 	 */
 	public FSReturnVals RenameDir(String src, String NewName) {
 		
+		// Enforce "src" to end with "/"
 		if (!src.endsWith("/")) {
 			src += "/";
 		}
+		
+		// Enforce "NewName" to end with "/"
 		if (!NewName.endsWith("/")) {
 			NewName += "/";
 		}
@@ -251,6 +256,7 @@ public class Master {
 	 */
 	public String[] ListDir(String tgt) {
 		
+		// Enforce "tgt" to end with "/"
 		if (!tgt.endsWith("/")) {
 			tgt += "/";
 		}
@@ -270,7 +276,14 @@ public class Master {
 		Iterator<String> iterator = subDirSet.iterator();
 		for (int i = 0; i < subDirSet.size(); i++) {
 			if (iterator.hasNext()) {
-				subDirArray[i] = iterator.next();
+				// Retrieve the next directory/file
+				String next = iterator.next();
+				// If the next String is a directory
+				if (next.endsWith("/")) {
+					next = next.substring(0, next.length());
+				}
+				// Put the next directory/file into the Array
+				subDirArray[i] = next;
 			}
 			else {
 				break;
