@@ -10,6 +10,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -342,7 +343,16 @@ public class Master {
 		
 		// TODO: use the UUID to tell the chunkserver(s) to create an empty initial empty chunk
 		// If successful add the current chunkserver ip addr to chunk namespace
-		if (cs.writeChunk(uuid.toString(), null, 0))
+		// Create an empty Chunk with the header
+		// Header : 8 bytes [ 1) 4 bytes = # of records, 2) 4 bytes = offset for the next free byte]
+		byte[] header = new byte[8];
+		byte[] numRec = ByteBuffer.allocate(4).putInt(0).array();
+		byte[] offset = ByteBuffer.allocate(4).putInt(8).array();
+		
+		System.arraycopy(numRec, 0, header, 0, numRec.length);
+		System.arraycopy(offset, 0, header, numRec.length, offset.length);
+		
+		if (cs.writeChunk(uuid.toString(), header, 0))
 			return ClientFS.FSReturnVals.Success;
 		
 		// Else return failure
