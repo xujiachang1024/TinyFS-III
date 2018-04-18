@@ -332,6 +332,7 @@ public class Master {
 	 *
 	 * Example usage: DeleteFile("/Shahram/CSCI485/Lecture1/", "Intro.pptx")
 	 */
+	// It makes the file as 'hidden' (notated by the '$' in the beginning) to be garbage collected later
 	public FSReturnVals DeleteFile(String tgtdir, String filename) {
 		if (!directories.containsKey(tgtdir))
 			return ClientFS.FSReturnVals.SrcDirNotExistent;
@@ -339,20 +340,14 @@ public class Master {
 		if (!files.containsKey(tgtdir+filename))
 			return ClientFS.FSReturnVals.FileDoesNotExist;
 		
-		// Remove it from the set of files in the tgtdir
+		// Remove it from the set of files in the tgtdir so that it is not listed
 		directories.get(tgtdir).remove(tgtdir+filename);
 		
-		// Remove it from the file entries
+		// Rename the file but keep the chunks intact
 		Vector<String> chunks = files.get(tgtdir+filename);
 		files.remove(tgtdir+filename);
-		
-		// Remove chunks from chunkLocations
-		for (String chunkHandle : chunks) {
-			Vector<String> locations = chunkLocations.get(chunkHandle);
-			chunkLocations.remove(chunkHandle);
-			
-			// TODO: remove the chunks from the chunkserver(s)?
-		}
+		// Rename the file to be '.filename'
+		files.put("$"+tgtdir+filename, chunks);
 		
 		return ClientFS.FSReturnVals.Success;
 	}
