@@ -121,6 +121,10 @@ public class Master {
 		// check if src is a dir (ending '/')
 		// see if src exist in hashmap if yes, add dirname to its list, and append src+dirname to key with an empty list
 		
+		if (!src.endsWith("/")) {
+			src += "/";
+		}
+		
 		// Create the full path of the destination directory
 		String destDirFullPath = src + dirname + '/';
 		
@@ -153,6 +157,10 @@ public class Master {
 	 */
 	public FSReturnVals DeleteDir(String src, String dirname) {
 		
+		if (!src.endsWith("/")) {
+			src += "/";
+		}
+		
 		// Create the full path of the destination directory
 		String destDirFullPath = src + dirname + '/';
 		
@@ -184,14 +192,48 @@ public class Master {
 	 */
 	public FSReturnVals RenameDir(String src, String NewName) {
 		
+		if (!src.endsWith("/")) {
+			src += "/";
+		}
+		if (!NewName.endsWith("/")) {
+			NewName += "/";
+		}
+		
+		String[] srcSteps = src.split("/");
+		String parentPath = "/";
+		for (int i = 0; i < srcSteps.length - 1; i++) {
+			parentPath += (srcSteps[i] + "/");
+		}
+		
+		// Check if parent directory exists
+		if (!directories.containsKey(parentPath)) {
+			return ClientFS.FSReturnVals.SrcDirNotExistent;
+		}
+		
 		// Check if "src" directory exists
 		if (!directories.containsKey(src)) {
 			return ClientFS.FSReturnVals.SrcDirNotExistent;
 		}
 		
-		// TODO
+		// Update the name in the HashSet under the immediate parent directory
+		HashSet<String> newDirSet = new HashSet<String>();
+		Iterator<String> iterator = directories.get(parentPath).iterator();
+		while (iterator.hasNext()) {
+			String next = iterator.next();
+			if (next == src) {
+				newDirSet.add(NewName);
+			}
+			else {
+				newDirSet.add(next);
+			}
+		}
+		directories.put(parentPath, newDirSet);
 		
-		return null;
+		// Update the name as the key in the "directories" HashMap
+		directories.put(NewName, directories.get(src));
+		directories.remove(src);
+		
+		return ClientFS.FSReturnVals.Success;
 	}
 
 	/**
@@ -202,6 +244,10 @@ public class Master {
 	 * Example usage: ListDir("/Shahram/CSCI485")
 	 */
 	public String[] ListDir(String tgt) {
+		
+		if (!tgt.endsWith("/")) {
+			tgt += "/";
+		}
 		
 		// Check if "tgt" directory exists
 		if (!directories.containsKey(tgt)) {
