@@ -17,8 +17,6 @@ import java.util.Vector;
 
 import com.client.ClientFS.FSReturnVals;
 
-import javafx.util.Pair;
-
 public class Master {
 	
 	public static final String masterBackupFileName = "masterBackup";
@@ -103,6 +101,21 @@ public class Master {
 			ioe.printStackTrace();
 		} catch (ClassNotFoundException cnfe) {
 			cnfe.printStackTrace();
+		} finally {
+			if (ois != null) {
+				try {
+					ois.close();
+				} catch (IOException ioe) {
+					ioe.printStackTrace();
+				}
+			}
+			if (fis != null) {
+				try {
+					fis.close();
+				} catch (IOException ioe) {
+					ioe.printStackTrace();
+				}
+			}
 		}
 	}
 	
