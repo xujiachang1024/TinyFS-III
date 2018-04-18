@@ -126,7 +126,10 @@ public class Master {
 		}
 		
 		// Create the full path of the destination directory
-		String destDirFullPath = src + dirname + '/';
+		String destDirFullPath = src + dirname;
+		if (!destDirFullPath.endsWith("/")) {
+			destDirFullPath += "/";
+		}
 		
 		// Check if "src" directory exists
 		if (!directories.containsKey(src)) {
@@ -162,7 +165,10 @@ public class Master {
 		}
 		
 		// Create the full path of the destination directory
-		String destDirFullPath = src + dirname + '/';
+		String destDirFullPath = src + dirname;
+		if (!destDirFullPath.endsWith("/")) {
+			destDirFullPath += "/";
+		}
 		
 		// Check if "src" directory exists
 		if (!directories.containsKey(src)) {
