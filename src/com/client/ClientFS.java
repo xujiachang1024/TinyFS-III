@@ -38,7 +38,7 @@ public class ClientFS {
 		// Hashmap <dirString, list of files/dirs)
 		// check if src is a dir (ending '/')
 		// see if src exist in hashmap if yes, add dirname to its list, and append src+dirname to key with an empty list
-		return null;
+		return master.CreateDir(src, dirname);
 	}
 
 	/**
@@ -49,7 +49,7 @@ public class ClientFS {
 	 * Example usage: DeleteDir("/Shahram/CSCI485/", "Lecture1")
 	 */
 	public FSReturnVals DeleteDir(String src, String dirname) {
-		return null;
+		return master.DeleteDir(src, dirname);
 	}
 
 	/**
@@ -61,7 +61,7 @@ public class ClientFS {
 	 * "/Shahram/CSCI485" to "/Shahram/CSCI550"
 	 */
 	public FSReturnVals RenameDir(String src, String NewName) {
-		return null;
+		return master.RenameDir(src, NewName);
 	}
 
 	/**
@@ -72,7 +72,7 @@ public class ClientFS {
 	 * Example usage: ListDir("/Shahram/CSCI485")
 	 */
 	public String[] ListDir(String tgt) {
-		return null;
+		return master.ListDir(tgt);
 	}
 
 	/**

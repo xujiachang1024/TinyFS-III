@@ -1,5 +1,6 @@
 package com.master;
 
+import com.chunkserver.ChunkServer;
 import com.client.ClientFS;
 import com.client.FileHandle;
 
@@ -30,11 +31,16 @@ public class Master {
 	// HashMap<'chunkhandle', Vector<'ip addr'>>
 	private static HashMap<String, Vector<String>> chunkLocations;
 	
+	// Temporary local ChunkServer
+	private static ChunkServer cs;
+	
 	
 	public Master() {
 		
 		// initialize in-memory data structure
 		initializeMemory();	
+		
+		cs = new ChunkServer();
 	}
 	
 	/**
@@ -296,7 +302,7 @@ public class Master {
 				// If the next String is a directory
 				if (next.endsWith("/")) {
 					// Remove the ending "/" temporarily
-					next = next.substring(0, next.length());
+					next = next.substring(0, next.length()-1);
 				}
 				// Put the next directory/file into the Array
 				subDirArray[i] = next;
@@ -336,9 +342,11 @@ public class Master {
 		
 		// TODO: use the UUID to tell the chunkserver(s) to create an empty initial empty chunk
 		// If successful add the current chunkserver ip addr to chunk namespace
-		return ClientFS.FSReturnVals.Success;
+		if (cs.writeChunk(uuid.toString(), null, 0))
+			return ClientFS.FSReturnVals.Success;
 		
 		// Else return failure
+		return ClientFS.FSReturnVals.Fail;
 	}
 
 	/**
