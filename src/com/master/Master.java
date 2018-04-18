@@ -138,16 +138,15 @@ public class Master {
 		}
 		
 		// Check if "destDirFullPath" exits
-		if (directories.get(src).contains(destDirFullPath)) {
+		if (directories.containsKey(destDirFullPath)) {
 			return ClientFS.FSReturnVals.DestDirExists;
 		}
 
 		// Add the folder in the set of its parents content
 		directories.get(src).add(destDirFullPath);
 		
-		// Else add the folder as a directories entry
+		// Add the folder as a directories entry
 		directories.put(destDirFullPath, new HashSet<String>());
-		
 		
 		return ClientFS.FSReturnVals.Success;
 	}
@@ -172,18 +171,16 @@ public class Master {
 			destDirFullPath += "/";
 		}
 		
-		// Check if "src" directory exists
-		if (!directories.containsKey(src)) {
+		// Check if "src" or "destDirFullPath" exists
+		if (!directories.containsKey(src) || !directories.containsKey(destDirFullPath)) {
 			return ClientFS.FSReturnVals.SrcDirNotExistent;
 		}
-				
-		// Check if "destFullPath" exits
-		if (directories.get(src).contains(destDirFullPath)) {
-			return ClientFS.FSReturnVals.DestDirExists;
+		
+		// Check if "destFullPath" is empty
+		if (directories.get(destDirFullPath).size() != 0) {
+			return ClientFS.FSReturnVals.DirNotEmpty;
 		}
 		
-		// TODO: what about any sub-directories under "destDirFullPath"
-		// TODO: maybe we need a DFS delete protocol
 		directories.get(src).remove(destDirFullPath);
 		directories.remove(destDirFullPath);
 		
@@ -214,6 +211,11 @@ public class Master {
 		String parentPath = "/";
 		for (int i = 0; i < srcSteps.length - 1; i++) {
 			parentPath += (srcSteps[i] + "/");
+		}
+		
+		// Check if the parent path matches for old/new directory names
+		if (NewName.startsWith(parentPath)) {
+			return ClientFS.FSReturnVals.Fail;
 		}
 		
 		// Check if parent directory exists
@@ -280,6 +282,7 @@ public class Master {
 				String next = iterator.next();
 				// If the next String is a directory
 				if (next.endsWith("/")) {
+					// Remove the ending "/" temporarily
 					next = next.substring(0, next.length());
 				}
 				// Put the next directory/file into the Array
