@@ -125,13 +125,14 @@ public class Master {
 			return ClientFS.FSReturnVals.SrcDirNotExistent;
 		
 		// Check if dirname exits
-		if (directories.get(src).contains(src+dirname))
+		if (directories.get(src).contains(src+dirname+'/'))
 			return ClientFS.FSReturnVals.DestDirExists;
 		
 		// Else add the folder as a directories entry
 		directories.put(src+dirname+'/', new HashSet<String>());
+		
 		// Add the folder in the set of its parents content
-		directories.get(src).add(src+dirname);
+		directories.get(src).add(src+dirname+'/');
 		
 		return ClientFS.FSReturnVals.Success;
 	}
