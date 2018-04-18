@@ -120,19 +120,25 @@ public class Master {
 		// check if src is a dir (ending '/')
 		// see if src exist in hashmap if yes, add dirname to its list, and append src+dirname to key with an empty list
 		
-		// Check if src dir exists
-		if (!directories.containsKey(src))
-			return ClientFS.FSReturnVals.SrcDirNotExistent;
+		// Create the full path of the destination directory
+		String destDirFullPath = src + dirname + '/';
 		
-		// Check if dirname exits
-		if (directories.get(src).contains(src+dirname+'/'))
+		// Check if "src" directory exists
+		if (!directories.containsKey(src)) {
+			return ClientFS.FSReturnVals.SrcDirNotExistent;
+		}
+		
+		// Check if "destDirFullPath" exits
+		if (directories.get(src).contains(destDirFullPath)) {
 			return ClientFS.FSReturnVals.DestDirExists;
+		}
+
+		// Add the folder in the set of its parents content
+		directories.get(src).add(destDirFullPath);
 		
 		// Else add the folder as a directories entry
-		directories.put(src+dirname+'/', new HashSet<String>());
+		directories.put(destDirFullPath, new HashSet<String>());
 		
-		// Add the folder in the set of its parents content
-		directories.get(src).add(src+dirname+'/');
 		
 		return ClientFS.FSReturnVals.Success;
 	}
@@ -145,6 +151,24 @@ public class Master {
 	 * Example usage: DeleteDir("/Shahram/CSCI485/", "Lecture1")
 	 */
 	public FSReturnVals DeleteDir(String src, String dirname) {
+		
+		// Create the full path of the destination directory
+		String destFullPath = src + dirname + '/';
+		
+		// Check if "src" directory exists
+		if (!directories.containsKey(src)) {
+			return ClientFS.FSReturnVals.SrcDirNotExistent;
+		}
+				
+		// Check if "destFullPath" exits
+		if (directories.get(src).contains(destFullPath)) {
+			return ClientFS.FSReturnVals.DestDirExists;
+		}
+		
+		// TODO: what 
+		directories.get(src).remove(destFullPath);
+		directories.remove(destFullPath);
+		
 		return null;
 	}
 
