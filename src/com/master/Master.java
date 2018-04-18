@@ -11,6 +11,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.UUID;
 import java.util.Vector;
 
@@ -153,7 +154,7 @@ public class Master {
 	public FSReturnVals DeleteDir(String src, String dirname) {
 		
 		// Create the full path of the destination directory
-		String destFullPath = src + dirname + '/';
+		String destDirFullPath = src + dirname + '/';
 		
 		// Check if "src" directory exists
 		if (!directories.containsKey(src)) {
@@ -161,15 +162,16 @@ public class Master {
 		}
 				
 		// Check if "destFullPath" exits
-		if (directories.get(src).contains(destFullPath)) {
+		if (directories.get(src).contains(destDirFullPath)) {
 			return ClientFS.FSReturnVals.DestDirExists;
 		}
 		
-		// TODO: what 
-		directories.get(src).remove(destFullPath);
-		directories.remove(destFullPath);
+		// TODO: what about any subdirectories under "destDirFullPath"
+		// TODO: maybe we need a DFS delete protocol
+		directories.get(src).remove(destDirFullPath);
+		directories.remove(destDirFullPath);
 		
-		return null;
+		return ClientFS.FSReturnVals.Success;
 	}
 
 	/**
@@ -181,6 +183,14 @@ public class Master {
 	 * "/Shahram/CSCI485" to "/Shahram/CSCI550"
 	 */
 	public FSReturnVals RenameDir(String src, String NewName) {
+		
+		// Check if "src" directory exists
+		if (!directories.containsKey(src)) {
+			return ClientFS.FSReturnVals.SrcDirNotExistent;
+		}
+		
+		// TODO
+		
 		return null;
 	}
 
@@ -192,7 +202,30 @@ public class Master {
 	 * Example usage: ListDir("/Shahram/CSCI485")
 	 */
 	public String[] ListDir(String tgt) {
-		return null;
+		
+		// Check if "tgt" directory exists
+		if (!directories.containsKey(tgt)) {
+			return new String[0];
+		}
+		
+		// Retrieve the sub-directories HashSet
+		HashSet<String> subDirSet = directories.get(tgt);
+		
+		// Create a String Array for sub-directories
+		String[] subDirArray = new String[subDirSet.size()];
+		
+		// Iterate the HashSet and add to the Array
+		Iterator<String> iterator = subDirSet.iterator();
+		for (int i = 0; i < subDirSet.size(); i++) {
+			if (iterator.hasNext()) {
+				subDirArray[i] = iterator.next();
+			}
+			else {
+				break;
+			}
+		}
+		
+		return subDirArray;
 	}
 
 	/**
