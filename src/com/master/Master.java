@@ -296,7 +296,7 @@ public class Master {
 				// If the next String is a directory
 				if (next.endsWith("/")) {
 					// Remove the ending "/" temporarily
-					next = next.substring(0, next.length());
+					next = next.substring(0, next.length()-1);
 				}
 				// Put the next directory/file into the Array
 				subDirArray[i] = next;
