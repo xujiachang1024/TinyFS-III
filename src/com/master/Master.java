@@ -308,32 +308,19 @@ public class Master {
 			return null;
 		}
 		
-<<<<<<< HEAD
 		// Create a String Vector to collect all the sub-directories
-		ArrayList<String> subDirVector = new ArrayList<String>();
-=======
-		// Create a String ArrayList to collect all the sub-directories
-		Vector<String> subDirArrayList = new Vector<String>();
->>>>>>> 57d33dc9e9ac21734e6df628d6c3ea96f9f944f7
+		Vector<String> subDirVector = new Vector<String>();
 		
 		// Start DFS on the "tgt" directory
 		ListDirDFS(tgt, subDirVector);
 		
-		// Convert the String ArrayList to a String Array
-<<<<<<< HEAD
-		String[] subDirArray = (String[])subDirVector.toArray();
-=======
-		String[] subDirArray = subDirArrayList.toArray(new String[subDirArrayList.size()]);
->>>>>>> 57d33dc9e9ac21734e6df628d6c3ea96f9f944f7
+		// Convert the String Vector to a String Array
+		String[] subDirArray = subDirVector.toArray(new String[subDirVector.size()]);
 		
 		return subDirArray;
 	}
 	
-<<<<<<< HEAD
-	private void ListDirDFS(String currFullPath, ArrayList<String> subDirVector) {
-=======
-	private void ListDirDFS(String currFullPath, Vector<String> subDirArrayList) {
->>>>>>> 57d33dc9e9ac21734e6df628d6c3ea96f9f944f7
+	private void ListDirDFS(String currFullPath, Vector<String> subDirVector) {
 		
 		// Retrieve the sub-directories HashSet
 		HashSet<String> subDirSet = directories.get(currFullPath);
@@ -347,14 +334,10 @@ public class Master {
 			// If the "nextFullPath" is a directory, start a recursive call
 			if (nextFullPath.endsWith("/")) {
 				ListDirDFS(nextFullPath, subDirVector);
+				nextFullPath = nextFullPath.substring(0, nextFullPath.length()-1);
 			}
-			// Add the "nextFullPath" to the ArrayList
-<<<<<<< HEAD
+			// Add the "nextFullPath" to the Vector
 			subDirVector.add(nextFullPath);
-=======
-			nextFullPath = nextFullPath.substring(0, nextFullPath.length()-1);
-			subDirArrayList.add(nextFullPath);
->>>>>>> 57d33dc9e9ac21734e6df628d6c3ea96f9f944f7
 		}
 	}
 
