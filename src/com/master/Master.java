@@ -9,6 +9,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -278,35 +279,44 @@ public class Master {
 		
 		// Check if "tgt" directory exists
 		if (!directories.containsKey(tgt)) {
-			return new String[0];
+			// TODO: what shall I return
+			return null;
 		}
 		
-		// Retrieve the sub-directories HashSet
-		HashSet<String> subDirSet = directories.get(tgt);
-		
-		// Create a String Array for sub-directories
-		String[] subDirArray = new String[subDirSet.size()];
-		
-		// Iterate the HashSet and add to the Array
-		Iterator<String> iterator = subDirSet.iterator();
-		for (int i = 0; i < subDirSet.size(); i++) {
-			if (iterator.hasNext()) {
-				// Retrieve the next directory/file
-				String next = iterator.next();
-				// If the next String is a directory
-				if (next.endsWith("/")) {
-					// Remove the ending "/" temporarily
-					next = next.substring(0, next.length());
-				}
-				// Put the next directory/file into the Array
-				subDirArray[i] = next;
-			}
-			else {
-				break;
-			}
+		// Check if "tgt" directory is empty
+		if (directories.get(tgt).size() == 0) {
+			return null;
 		}
+		
+		// Create a String ArrayList to collect all the sub-directories
+		ArrayList<String> subDirArrayList = new ArrayList<String>();
+		
+		// Start DFS on the "tgt" directory
+		ListDirDFS(tgt, subDirArrayList);
+		
+		// Convert the String ArrayList to a String Array
+		String[] subDirArray = (String[])subDirArrayList.toArray();
 		
 		return subDirArray;
+	}
+	
+	private void ListDirDFS(String currFullPath, ArrayList<String> subDirArrayList) {
+		
+		// Retrieve the sub-directories HashSet
+		HashSet<String> subDirSet = directories.get(currFullPath);
+		
+		// Iterate the HashSet
+		Iterator<String> iterator = subDirSet.iterator();
+		while (iterator.hasNext()) {
+			// Retrieve the next directory/file
+			String nextFullPath = iterator.next();
+			// If the "nextFullPath" is a directory, start a recursive call
+			if (nextFullPath.endsWith("/")) {
+				ListDirDFS(nextFullPath, subDirArrayList);
+			}
+			// Add the "nextFullPath" to the ArrayList
+			subDirArrayList.add(nextFullPath);
+		}
 	}
 
 	/**
