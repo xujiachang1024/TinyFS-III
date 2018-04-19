@@ -1,7 +1,6 @@
 package com.master;
 
 import com.client.ClientFS;
-import com.client.FileHandle;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -17,6 +16,7 @@ import java.util.UUID;
 import java.util.Vector;
 
 import com.client.ClientFS.FSReturnVals;
+import com.client.FileHandle;
 
 public class Master {
 	
@@ -307,29 +307,12 @@ public class Master {
 		
 		// Iterate the HashSet
 		Iterator<String> iterator = subDirSet.iterator();
-<<<<<<< HEAD
 		while (iterator.hasNext()) {
 			// Retrieve the next directory/file
 			String nextFullPath = iterator.next();
 			// If the "nextFullPath" is a directory, start a recursive call
 			if (nextFullPath.endsWith("/")) {
 				ListDirDFS(nextFullPath, subDirArrayList);
-=======
-		for (int i = 0; i < subDirSet.size(); i++) {
-			if (iterator.hasNext()) {
-				// Retrieve the next directory/file
-				String next = iterator.next();
-				// If the next String is a directory
-				if (next.endsWith("/")) {
-					// Remove the ending "/" temporarily
-					next = next.substring(0, next.length()-1);
-				}
-				// Put the next directory/file into the Array
-				subDirArray[i] = next;
-			}
-			else {
-				break;
->>>>>>> 40bc87d48019b21a9af9a524df91e7efe82e968f
 			}
 			// Add the "nextFullPath" to the ArrayList
 			subDirArrayList.add(nextFullPath);
