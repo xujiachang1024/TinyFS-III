@@ -1,7 +1,5 @@
 package com.master;
 
-import com.client.ClientFS;
-
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -15,6 +13,7 @@ import java.util.Iterator;
 import java.util.UUID;
 import java.util.Vector;
 
+import com.client.ClientFS;
 import com.client.ClientFS.FSReturnVals;
 import com.client.FileHandle;
 
