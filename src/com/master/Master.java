@@ -307,12 +307,29 @@ public class Master {
 		
 		// Iterate the HashSet
 		Iterator<String> iterator = subDirSet.iterator();
+<<<<<<< HEAD
 		while (iterator.hasNext()) {
 			// Retrieve the next directory/file
 			String nextFullPath = iterator.next();
 			// If the "nextFullPath" is a directory, start a recursive call
 			if (nextFullPath.endsWith("/")) {
 				ListDirDFS(nextFullPath, subDirArrayList);
+=======
+		for (int i = 0; i < subDirSet.size(); i++) {
+			if (iterator.hasNext()) {
+				// Retrieve the next directory/file
+				String next = iterator.next();
+				// If the next String is a directory
+				if (next.endsWith("/")) {
+					// Remove the ending "/" temporarily
+					next = next.substring(0, next.length()-1);
+				}
+				// Put the next directory/file into the Array
+				subDirArray[i] = next;
+			}
+			else {
+				break;
+>>>>>>> 40bc87d48019b21a9af9a524df91e7efe82e968f
 			}
 			// Add the "nextFullPath" to the ArrayList
 			subDirArrayList.add(nextFullPath);
@@ -346,6 +363,8 @@ public class Master {
 		
 		// TODO: use the UUID to tell the chunkserver(s) to create an empty initial empty chunk
 		// If successful add the current chunkserver ip addr to chunk namespace
+		// Create an empty Chunk with the header
+		// Header : 8 bytes (4 bytes = # of records, 4 bytes = offset for the next free byte)
 		return ClientFS.FSReturnVals.Success;
 		
 		// Else return failure
