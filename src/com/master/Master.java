@@ -287,19 +287,19 @@ public class Master {
 			return null;
 		}
 		
-		// Create a String ArrayList to collect all the sub-directories
-		ArrayList<String> subDirArrayList = new ArrayList<String>();
+		// Create a String Vector to collect all the sub-directories
+		ArrayList<String> subDirVector = new ArrayList<String>();
 		
 		// Start DFS on the "tgt" directory
-		ListDirDFS(tgt, subDirArrayList);
+		ListDirDFS(tgt, subDirVector);
 		
 		// Convert the String ArrayList to a String Array
-		String[] subDirArray = (String[])subDirArrayList.toArray();
+		String[] subDirArray = (String[])subDirVector.toArray();
 		
 		return subDirArray;
 	}
 	
-	private void ListDirDFS(String currFullPath, ArrayList<String> subDirArrayList) {
+	private void ListDirDFS(String currFullPath, ArrayList<String> subDirVector) {
 		
 		// Retrieve the sub-directories HashSet
 		HashSet<String> subDirSet = directories.get(currFullPath);
@@ -311,10 +311,10 @@ public class Master {
 			String nextFullPath = iterator.next();
 			// If the "nextFullPath" is a directory, start a recursive call
 			if (nextFullPath.endsWith("/")) {
-				ListDirDFS(nextFullPath, subDirArrayList);
+				ListDirDFS(nextFullPath, subDirVector);
 			}
 			// Add the "nextFullPath" to the ArrayList
-			subDirArrayList.add(nextFullPath);
+			subDirVector.add(nextFullPath);
 		}
 	}
 
