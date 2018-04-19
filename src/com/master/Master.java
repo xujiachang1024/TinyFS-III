@@ -1,12 +1,17 @@
 package com.master;
 
+import com.chunkserver.ChunkServer;
+import com.client.ClientFS;
+import com.client.FileHandle;
+
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.ArrayList;
+
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -30,11 +35,16 @@ public class Master {
 	// HashMap<'chunkhandle', Vector<'ip addr'>>
 	private static HashMap<String, Vector<String>> chunkLocations;
 	
+	// Temporary local ChunkServer
+	private static ChunkServer cs;
+	
 	
 	public Master() {
 		
 		// initialize in-memory data structure
 		initializeMemory();	
+		
+		cs = new ChunkServer();
 	}
 	
 	/**
@@ -140,10 +150,11 @@ public class Master {
 		}
 		
 		// Create the full path of the destination directory (end with "/")
-		String destDirFullPath = src + dirname;
-		if (!destDirFullPath.endsWith("/")) {
-			destDirFullPath += "/";
+		if (!dirname.endsWith("/")) {
+			dirname += "/";
 		}
+		
+		String destDirFullPath = src + dirname;
 		
 		// Check if "src" directory exists
 		if (!directories.containsKey(src)) {
@@ -156,7 +167,7 @@ public class Master {
 		}
 
 		// Add the folder in the set of its parents content
-		directories.get(src).add(destDirFullPath);
+		directories.get(src).add(dirname);
 		
 		// Add the folder as a directories entry
 		directories.put(destDirFullPath, new HashSet<String>());
@@ -179,10 +190,11 @@ public class Master {
 		}
 		
 		// Create the full path of the destination directory (end with "/")
-		String destDirFullPath = src + dirname;
-		if (!destDirFullPath.endsWith("/")) {
-			destDirFullPath += "/";
+		if (!dirname.endsWith("/")) {
+			dirname += "/";
 		}
+		
+		String destDirFullPath = src + dirname;
 		
 		// Check if "src" or "destDirFullPath" exists
 		if (!directories.containsKey(src) || !directories.containsKey(destDirFullPath)) {
@@ -194,7 +206,7 @@ public class Master {
 			return ClientFS.FSReturnVals.DirNotEmpty;
 		}
 		
-		directories.get(src).remove(destDirFullPath);
+		directories.get(src).remove(dirname);
 		directories.remove(destDirFullPath);
 		
 		return ClientFS.FSReturnVals.Success;
@@ -221,13 +233,13 @@ public class Master {
 		}
 		
 		String[] srcSteps = src.split("/");
-		String parentPath = "/";
+		String parentPath = "";
 		for (int i = 0; i < srcSteps.length - 1; i++) {
 			parentPath += (srcSteps[i] + "/");
 		}
 		
 		// Check if the parent path matches for old/new directory names
-		if (NewName.startsWith(parentPath)) {
+		if (!NewName.startsWith(parentPath)) {
 			return ClientFS.FSReturnVals.Fail;
 		}
 		
@@ -242,22 +254,31 @@ public class Master {
 		}
 		
 		// Update the name in the HashSet under the immediate parent directory
-		HashSet<String> newDirSet = new HashSet<String>();
-		Iterator<String> iterator = directories.get(parentPath).iterator();
-		while (iterator.hasNext()) {
-			String next = iterator.next();
-			if (next == src) {
-				newDirSet.add(NewName);
-			}
-			else {
-				newDirSet.add(next);
-			}
-		}
-		directories.put(parentPath, newDirSet);
+//		HashSet<String> newDirSet = new HashSet<String>();
+//		Iterator<String> iterator = directories.get(parentPath).iterator();
+//		while (iterator.hasNext()) {
+//			String next = iterator.next();
+//			if (next == src) {
+//				newDirSet.add(NewName);
+//			}
+//			else {
+//				newDirSet.add(next);
+//			}
+//		}
+		
+		// Get the target dirname
+		String[] newSteps = NewName.split("/");
+		String newDirname = newSteps[newSteps.length-1];
+		
+		directories.get(parentPath).remove(srcSteps[srcSteps.length-1]);
+		directories.get(parentPath).add(newDirname);
+		//directories.put(parentPath, newDirSet);
 		
 		// Update the name as the key in the "directories" HashMap
 		directories.put(NewName, directories.get(src));
 		directories.remove(src);
+		
+		
 		
 		return ClientFS.FSReturnVals.Success;
 	}
@@ -287,19 +308,32 @@ public class Master {
 			return null;
 		}
 		
+<<<<<<< HEAD
 		// Create a String Vector to collect all the sub-directories
 		ArrayList<String> subDirVector = new ArrayList<String>();
+=======
+		// Create a String ArrayList to collect all the sub-directories
+		Vector<String> subDirArrayList = new Vector<String>();
+>>>>>>> 57d33dc9e9ac21734e6df628d6c3ea96f9f944f7
 		
 		// Start DFS on the "tgt" directory
 		ListDirDFS(tgt, subDirVector);
 		
 		// Convert the String ArrayList to a String Array
+<<<<<<< HEAD
 		String[] subDirArray = (String[])subDirVector.toArray();
+=======
+		String[] subDirArray = subDirArrayList.toArray(new String[subDirArrayList.size()]);
+>>>>>>> 57d33dc9e9ac21734e6df628d6c3ea96f9f944f7
 		
 		return subDirArray;
 	}
 	
+<<<<<<< HEAD
 	private void ListDirDFS(String currFullPath, ArrayList<String> subDirVector) {
+=======
+	private void ListDirDFS(String currFullPath, Vector<String> subDirArrayList) {
+>>>>>>> 57d33dc9e9ac21734e6df628d6c3ea96f9f944f7
 		
 		// Retrieve the sub-directories HashSet
 		HashSet<String> subDirSet = directories.get(currFullPath);
@@ -308,13 +342,19 @@ public class Master {
 		Iterator<String> iterator = subDirSet.iterator();
 		while (iterator.hasNext()) {
 			// Retrieve the next directory/file
-			String nextFullPath = iterator.next();
+			String nextFullPath = currFullPath + iterator.next();
+
 			// If the "nextFullPath" is a directory, start a recursive call
 			if (nextFullPath.endsWith("/")) {
 				ListDirDFS(nextFullPath, subDirVector);
 			}
 			// Add the "nextFullPath" to the ArrayList
+<<<<<<< HEAD
 			subDirVector.add(nextFullPath);
+=======
+			nextFullPath = nextFullPath.substring(0, nextFullPath.length()-1);
+			subDirArrayList.add(nextFullPath);
+>>>>>>> 57d33dc9e9ac21734e6df628d6c3ea96f9f944f7
 		}
 	}
 
@@ -337,7 +377,7 @@ public class Master {
 		// If all good, add the full file path to the list of files
 		files.put(tgtdir+filename, new Vector<String>());
 		// Add this to the list of files under the target dir
-		directories.get(tgtdir).add(tgtdir+filename);
+		directories.get(tgtdir).add(filename);
 		
 		// Create a unique uuid for the chunk and store it in the files namespace
 		UUID uuid = UUID.randomUUID();
@@ -346,10 +386,19 @@ public class Master {
 		// TODO: use the UUID to tell the chunkserver(s) to create an empty initial empty chunk
 		// If successful add the current chunkserver ip addr to chunk namespace
 		// Create an empty Chunk with the header
-		// Header : 8 bytes (4 bytes = # of records, 4 bytes = offset for the next free byte)
-		return ClientFS.FSReturnVals.Success;
+		// Header : 8 bytes [ 1) 4 bytes = # of records, 2) 4 bytes = offset for the next free byte]
+		byte[] header = new byte[8];
+		byte[] numRec = ByteBuffer.allocate(4).putInt(0).array();
+		byte[] offset = ByteBuffer.allocate(4).putInt(8).array();
+		
+		System.arraycopy(numRec, 0, header, 0, numRec.length);
+		System.arraycopy(offset, 0, header, numRec.length, offset.length);
+		
+		if (cs.writeChunk(uuid.toString(), header, 0))
+			return ClientFS.FSReturnVals.Success;
 		
 		// Else return failure
+		return ClientFS.FSReturnVals.Fail;
 	}
 
 	/**
@@ -368,7 +417,7 @@ public class Master {
 			return ClientFS.FSReturnVals.FileDoesNotExist;
 		
 		// Remove it from the set of files in the tgtdir so that it is not listed
-		directories.get(tgtdir).remove(tgtdir+filename);
+		directories.get(tgtdir).remove(filename);
 		
 		// Rename the file but keep the chunks intact
 		Vector<String> chunks = files.get(tgtdir+filename);
