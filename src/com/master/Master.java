@@ -236,7 +236,7 @@ public class Master {
 		
 		// Retrieve the full path of the immediate parent directory
 		String[] srcSteps = src.split("/");
-		String parentPath = "/";
+		String parentPath = "";
 		for (int i = 0; i < srcSteps.length - 1; i++) {
 			parentPath += (srcSteps[i] + "/");
 		}
@@ -259,8 +259,8 @@ public class Master {
 		// Get the target dirname (the short name, not the full path)
 		String[] newSteps = NewName.split("/");
 		int renameLevel = newSteps.length - 1;
-		String srcDirname = srcSteps[renameLevel];
-		String newDirname = newSteps[renameLevel];
+		String srcDirname = srcSteps[renameLevel]+"/";
+		String newDirname = newSteps[renameLevel]+"/";
 		
 		// Update the name in the HashSet value in the "directories" HashMap
 		directories.get(parentPath).remove(srcDirname);
@@ -300,9 +300,12 @@ public class Master {
 			
 			// Build the full Path for the renamed directory
 			String[] oldSteps = oldFullPath.split("/");
-			String renamedFullPath = "/";
+			String renamedFullPath = "";
 			for (int i = 0; i < oldSteps.length; i++) {
-				renamedFullPath += (oldSteps[i] + "/");
+				if (i == renameLevel)
+					renamedFullPath += newNameShort;
+				else
+					renamedFullPath += (oldSteps[i] + "/");
 			}
 			
 			// Update the key in the "directories" HashMap
