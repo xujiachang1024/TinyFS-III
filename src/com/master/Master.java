@@ -15,6 +15,8 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.UUID;
 import java.util.Vector;
 
@@ -232,8 +234,9 @@ public class Master {
 			NewName += "/";
 		}
 		
+		// Retrieve the full path of the immediate parent directory
 		String[] srcSteps = src.split("/");
-		String parentPath = "";
+		String parentPath = "/";
 		for (int i = 0; i < srcSteps.length - 1; i++) {
 			parentPath += (srcSteps[i] + "/");
 		}
@@ -253,34 +256,59 @@ public class Master {
 			return ClientFS.FSReturnVals.SrcDirNotExistent;
 		}
 		
-		// Update the name in the HashSet under the immediate parent directory
-//		HashSet<String> newDirSet = new HashSet<String>();
-//		Iterator<String> iterator = directories.get(parentPath).iterator();
-//		while (iterator.hasNext()) {
-//			String next = iterator.next();
-//			if (next == src) {
-//				newDirSet.add(NewName);
-//			}
-//			else {
-//				newDirSet.add(next);
-//			}
-//		}
-		
-		// Get the target dirname
+		// Get the target dirname (the short name, not the full path)
 		String[] newSteps = NewName.split("/");
-		String newDirname = newSteps[newSteps.length-1];
+		int renameLevel = newSteps.length - 1;
+		String srcDirname = srcSteps[renameLevel];
+		String newDirname = newSteps[renameLevel];
 		
-		directories.get(parentPath).remove(srcSteps[srcSteps.length-1]);
+		// Update the name in the HashSet value in the "directories" HashMap
+		directories.get(parentPath).remove(srcDirname);
 		directories.get(parentPath).add(newDirname);
-		//directories.put(parentPath, newDirSet);
 		
-		// Update the name as the key in the "directories" HashMap
-		directories.put(NewName, directories.get(src));
-		directories.remove(src);
-		
-		
+		// Update the keys in the "directories" HashMap using BFS
+		RenameDirBFS(src, newDirname, renameLevel);
 		
 		return ClientFS.FSReturnVals.Success;
+	}
+	
+	private void RenameDirBFS(String srcFullPath, String newNameShort, int renameLevel) {
+		
+		// Create a Queue containing "oldFullPath"
+		Queue<String> oldFullPathQueue = new LinkedList<String>();
+		
+		// Put the "srcFullPath" into the "oldFullPathQueue"
+		oldFullPathQueue.add(srcFullPath);
+		
+		// Start BFS
+		while (oldFullPathQueue.peek() != null) {
+			
+			// Poll the head of the "oldFullPathQueue"
+			String oldFullPath = oldFullPathQueue.poll();
+			
+			// Add all the sub-directories of the "oldFullPath" to the "oldFullPathQueue"
+			Iterator<String> iterator = directories.get(oldFullPath).iterator();
+			while (iterator.hasNext()) {
+				// Build the full path of the next child
+				String childFullPath = oldFullPath + iterator.next();
+				// Check if the next child is a sub-directory
+				if (childFullPath.endsWith("/")) {
+					// Add the sub-directory to the "oldFullPathQueue"
+					oldFullPathQueue.add(childFullPath);
+				}
+			}
+			
+			// Build the full Path for the renamed directory
+			String[] oldSteps = oldFullPath.split("/");
+			String renamedFullPath = "/";
+			for (int i = 0; i < oldSteps.length; i++) {
+				renamedFullPath += (oldSteps[i] + "/");
+			}
+			
+			// Update the key in the "directories" HashMap
+			directories.put(renamedFullPath, directories.get(oldFullPath));
+			directories.remove(oldFullPath);
+		}
 	}
 
 	/**
