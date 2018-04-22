@@ -404,7 +404,7 @@ public class Master {
 		// Header : 8 bytes [ 1) 4 bytes = # of records, 2) 4 bytes = offset for the next free byte]
 		byte[] header = new byte[8];
 		byte[] numRec = ByteBuffer.allocate(4).putInt(0).array();
-		byte[] offset = ByteBuffer.allocate(4).putInt(8).array();
+		byte[] offset = ByteBuffer.allocate(4).putInt(ChunkServer.HeaderSize).array();
 		
 		System.arraycopy(numRec, 0, header, 0, numRec.length);
 		System.arraycopy(offset, 0, header, numRec.length, offset.length);
