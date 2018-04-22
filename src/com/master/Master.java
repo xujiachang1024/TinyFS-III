@@ -398,6 +398,7 @@ public class Master {
 		files.get(tgtdir+filename).add(uuid.toString());
 		
 		// TODO: use the UUID to tell the chunkserver(s) to create an empty initial empty chunk
+		// TODO: use uuid + ipaddress as the local chunkhandle
 		// If successful add the current chunkserver ip addr to chunk namespace
 		// Create an empty Chunk with the header
 		// Header : 8 bytes [ 1) 4 bytes = # of records, 2) 4 bytes = offset for the next free byte]
@@ -408,6 +409,7 @@ public class Master {
 		System.arraycopy(numRec, 0, header, 0, numRec.length);
 		System.arraycopy(offset, 0, header, numRec.length, offset.length);
 		
+		// Only add to chunkLocations if it is successful
 		if (cs.writeChunk(uuid.toString(), header, 0))
 			return ClientFS.FSReturnVals.Success;
 		
