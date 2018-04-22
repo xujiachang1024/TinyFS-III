@@ -33,6 +33,8 @@ public class ChunkServer implements ChunkServerInterface {
 	public static int PayloadSZ = Integer.SIZE/Byte.SIZE;  //Number of bytes in an integer
 	public static int CMDlength = Integer.SIZE/Byte.SIZE;  //Number of bytes in an integer  
 	
+	public static final int HeaderSize = 8;	// Header size is 8 bytes
+	
 	//Commands recognized by the Server
 	public static final int CreateChunkCMD = 101;
 	public static final int ReadChunkCMD = 102;
