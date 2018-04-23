@@ -393,28 +393,7 @@ public class Master {
 		// Add this to the list of files under the target dir
 		directories.get(tgtdir).add(filename);
 		
-		// Create a unique uuid for the chunk and store it in the files namespace
-		UUID uuid = UUID.randomUUID();
-		files.get(tgtdir+filename).add(uuid.toString());
-		
-		// TODO: use the UUID to tell the chunkserver(s) to create an empty initial empty chunk
-		// TODO: use uuid + ipaddress as the local chunkhandle
-		// If successful add the current chunkserver ip addr to chunk namespace
-		// Create an empty Chunk with the header
-		// Header : 8 bytes [ 1) 4 bytes = # of records, 2) 4 bytes = offset for the next free byte]
-		byte[] header = new byte[8];
-		byte[] numRec = ByteBuffer.allocate(4).putInt(0).array();
-		byte[] offset = ByteBuffer.allocate(4).putInt(ChunkServer.HeaderSize).array();
-		
-		System.arraycopy(numRec, 0, header, 0, numRec.length);
-		System.arraycopy(offset, 0, header, numRec.length, offset.length);
-		
-		// Only add to chunkLocations if it is successful
-		if (cs.writeChunk(uuid.toString(), header, 0))
-			return ClientFS.FSReturnVals.Success;
-		
-		// Else return failure
-		return ClientFS.FSReturnVals.Fail;
+		return AddChunk(tgtdir+filename);
 	}
 
 	/**
@@ -462,6 +441,7 @@ public class Master {
 		for (String chunkHandle : ofh.getChunkHandles()) {
 			locations.put(chunkHandle, chunkLocations.get(chunkHandle));
 		}
+		ofh.setFilePath(FilePath);
 		
 		return ClientFS.FSReturnVals.Success;
 	}
@@ -480,4 +460,37 @@ public class Master {
 //		
 //		return ClientFS.FSReturnVals.Success;
 //	}
+	
+	/**
+	 * Add a chunk to a given file
+	 * @return Success if success
+	 */
+	public FSReturnVals AddChunk(String FilePath) {
+		if (!files.containsKey(FilePath))
+			return ClientFS.FSReturnVals.FileDoesNotExist;
+		
+		// Create a unique uuid for the chunk and store it in the files namespace
+		UUID uuid = UUID.randomUUID();
+		files.get(FilePath).add(uuid.toString());
+
+		// TODO: use the UUID to tell the chunkserver(s) to create an empty initial empty chunk
+		// TODO: use ipaddress + uuid as the local chunkhandle
+		// If successful add the current chunkserver ip addr to chunk namespace
+		// Create an empty Chunk with the header
+		// Header : 8 bytes [ 1) 4 bytes = # of records, 2) 4 bytes = offset for the next free byte]
+		byte[] header = new byte[8];
+		byte[] numRec = ByteBuffer.allocate(4).putInt(0).array();
+		byte[] offset = ByteBuffer.allocate(4).putInt(ChunkServer.HeaderSize).array();
+
+		System.arraycopy(numRec, 0, header, 0, numRec.length);
+		System.arraycopy(offset, 0, header, numRec.length, offset.length);
+		
+		// Only add to chunkLocations if it is successful
+		if (cs.writeChunk(uuid.toString(), header, 0)) {
+			
+			return ClientFS.FSReturnVals.Success;
+		}
+		
+		return ClientFS.FSReturnVals.Fail;
+	}
 }
