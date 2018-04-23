@@ -5,6 +5,7 @@ import java.util.Vector;
 
 import com.chunkserver.ChunkServer;
 import com.client.ClientFS.FSReturnVals;
+import com.master.Master;
 
 public class ClientRec {
 	
@@ -22,6 +23,7 @@ public class ClientRec {
 	
 	// Temporary local chunkserver
 	private static ChunkServer cs;
+	private static Master master;
 	
 	public ClientRec() {
 		
@@ -43,67 +45,83 @@ public class ClientRec {
 		if (RecordID != null)
 			return ClientFS.FSReturnVals.BadRecID;
 		
-		String lastHandle = ofh.getChunkHandles().lastElement();
-		
-		// Pick the first location that the chunk is available at
-		//String firstLocation = ofh.getChunkLocations().get(lastHandle).firstElement();
-		
-		// access the chunk by looking it up with effective handle = location(ip addr)+handle
-		String effHandle = lastHandle;
-		
-		// Read the header record of the chunk
-		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(effHandle, 0, 8));
-		
-		// Read the number of records
-		int numRec = header.getInt();
-		// Read the next free offset
-		int offset = header.getInt();
-		
-		// payload + offset info + length info + type info
-		int neededSpace = TypeByteSize + LengthSize + payload.length + SlotSize;
-		int freeSpace = ChunkServer.ChunkSize - offset - (SlotSize*numRec);
-		
-		// if the space needed is larger than the size of a chunk
-		if (neededSpace > (ChunkServer.ChunkSize - ChunkServer.HeaderSize)) {
+		boolean success = false;
+		while(!success) {
 			
-		}
-		else {
-			
-			// if the space needed fits within the current chunk
-			if (neededSpace <= freeSpace) {
-				
-				// Write type(2) + length + payload
-				byte[] effPayload = new byte[TypeByteSize + LengthSize + payload.length];
-				effPayload[0] = Regular;
-				byte[] payloadSize = ByteBuffer.allocate(4).putInt(payload.length).array();
-				
-				System.arraycopy(payloadSize, 0, effPayload, 1, payloadSize.length);
-				System.arraycopy(payload, 0, header, payloadSize.length, payload.length);
-				cs.writeChunk(effHandle, effPayload, offset);
-				
-				// Write slot ID and the starting offset of its payload
-				int slotID = numRec;
-				byte[] offsetInfo = ByteBuffer.allocate(4).putInt(offset).array();
-				cs.writeChunk(effHandle, offsetInfo, slotIDToSlotOffset(slotID));
-				
-				// Update header info
-				numRec++;
-				offset = offset + effPayload.length;
-				header.putInt(0, numRec);
-				header.putInt(4, offset);
-				byte[] headerInfo = header.array();
-				cs.writeChunk(effHandle, headerInfo, 0);
-				
-				// Update RID
-				RecordID.setChunkHandle(lastHandle);
-				RecordID.setSlotID(slotID);
+			String lastHandle = ofh.getChunkHandles().lastElement();
+
+			// Pick the first location that the chunk is available at
+			//String firstLocation = ofh.getChunkLocations().get(lastHandle).firstElement();
+
+			// access the chunk by looking it up with effective handle = location(ip addr)+handle
+			String effHandle = lastHandle;
+
+			// Read the header record of the chunk
+			ByteBuffer header = ByteBuffer.wrap(cs.readChunk(effHandle, 0, 8));
+
+			// Read the number of records
+			int numRec = header.getInt();
+			// Read the next free offset
+			int offset = header.getInt();
+
+			// payload + offset info + length info + type info
+			int neededSpace = TypeByteSize + LengthSize + payload.length + SlotSize;
+			int freeSpace = ChunkServer.ChunkSize - offset - (SlotSize*numRec);
+
+			// if the space needed is larger than the size of a chunk
+			if (neededSpace > (ChunkServer.ChunkSize - ChunkServer.HeaderSize)) {
+
 			}
 			else {
-				// if the payload does not fit
+
+				// if the space needed fits within the current chunk
+				if (neededSpace <= freeSpace) {
+
+					// Write type(2) + length + payload
+					byte[] effPayload = new byte[TypeByteSize + LengthSize + payload.length];
+					effPayload[0] = Regular;
+					byte[] payloadSize = ByteBuffer.allocate(4).putInt(payload.length).array();
+
+					System.arraycopy(payloadSize, 0, effPayload, 1, payloadSize.length);
+					System.arraycopy(payload, 0, header, payloadSize.length, payload.length);
+					cs.writeChunk(effHandle, effPayload, offset);
+
+					// Write slot ID and the starting offset of its payload
+					int slotID = numRec;
+					byte[] offsetInfo = ByteBuffer.allocate(4).putInt(offset).array();
+					cs.writeChunk(effHandle, offsetInfo, slotIDToSlotOffset(slotID));
+
+					// Update header info
+					numRec++;
+					offset = offset + effPayload.length;
+					header.putInt(0, numRec);
+					header.putInt(4, offset);
+					byte[] headerInfo = header.array();
+					cs.writeChunk(effHandle, headerInfo, 0);
+
+					// Update RID
+					RecordID.setChunkHandle(lastHandle);
+					RecordID.setSlotID(slotID);
+					
+					// Indicate success
+					success = true;
+				}
+				else {
+					// if the payload does not fit
+					// Pad the chunk
+					offset = slotIDToSlotOffset(numRec - 1);
+					header.putInt(4, offset);
+					byte[] headerInfo = header.array();
+					cs.writeChunk(effHandle, headerInfo, 0);
+
+					// Tell Master to add another chunk to the file
+					master.AddChunk(ofh.getFilePath());
+					master.OpenFile(ofh.getFilePath(), ofh);
+				}
 			}
 		}
 		
-		return null;
+		return ClientFS.FSReturnVals.Success;
 	}
 
 	/**
