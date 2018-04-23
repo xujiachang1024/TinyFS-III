@@ -14,6 +14,9 @@ public class FileHandle {
 	// HashMap<'chunkHandle', Vector<'ip addr'>>
 	private HashMap<String, Vector<String>> chunkLocations;
 	
+	// Full FilePath
+	private String filePath;
+	
 	public FileHandle() {
 		this.chunkHandles = new Vector<String>();
 		this.chunkLocations = new HashMap<String, Vector<String>>();
@@ -33,5 +36,13 @@ public class FileHandle {
 	
 	public void setChunkLocations(HashMap<String, Vector<String>> chunkLocations) {
 		this.chunkLocations = chunkLocations;
+	}
+	
+	public String getFilePath() {
+		return this.filePath;
+	}
+	
+	public void setFilePath(String FilePath) {
+		this.filePath = filePath;
 	}
 }
