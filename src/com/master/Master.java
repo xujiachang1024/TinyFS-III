@@ -478,13 +478,19 @@ public class Master {
 		// If successful add the current chunkserver ip addr to chunk namespace
 		// Create an empty Chunk with the header
 		// Header : 8 bytes [ 1) 4 bytes = # of records, 2) 4 bytes = offset for the next free byte]
-		byte[] header = new byte[8];
+		byte[] header = new byte[ChunkServer.HeaderSize];
 		byte[] numRec = ByteBuffer.allocate(4).putInt(0).array();
 		byte[] offset = ByteBuffer.allocate(4).putInt(ChunkServer.HeaderSize).array();
+		byte[] first = ByteBuffer.allocate(4).putInt(0).array();
+		byte[] last = ByteBuffer.allocate(4).putInt(0).array();
 
 		System.arraycopy(numRec, 0, header, 0, numRec.length);
 		System.arraycopy(offset, 0, header, numRec.length, offset.length);
+		System.arraycopy(first, 0, header, numRec.length+offset.length, first.length);
+		System.arraycopy(last, 0, header, numRec.length+offset.length+first.length, last.length);
 		
+		// it will be ip addr + uuid after networking
+		String effHandle = uuid.toString();
 		// Only add to chunkLocations if it is successful
 		if (cs.writeChunk(uuid.toString(), header, 0)) {
 			
