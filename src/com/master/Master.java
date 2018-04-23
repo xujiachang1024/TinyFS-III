@@ -492,7 +492,7 @@ public class Master {
 		// it will be ip addr + uuid after networking
 		String effHandle = uuid.toString();
 		// Only add to chunkLocations if it is successful
-		if (cs.writeChunk(uuid.toString(), header, 0)) {
+		if (cs.writeChunk(effHandle, header, 0)) {
 			
 			return ClientFS.FSReturnVals.Success;
 		}
