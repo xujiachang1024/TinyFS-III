@@ -167,7 +167,48 @@ public class ClientRec {
 	 * Example usage: DeleteRecord(FH1, RecID1)
 	 */
 	public FSReturnVals DeleteRecord(FileHandle ofh, RID RecordID) {
-		return null;
+		if (ofh == null) {
+			return ClientFS.FSReturnVals.BadHandle;
+		}
+		if (RecordID != null) {
+			return ClientFS.FSReturnVals.BadRecID;
+		}
+		
+		//how do I access payload with what i have to the the size
+	//	long freedSpace = TypeByteSize + LengthSize + payload.length + SlotSize;
+		int maxSize = ChunkServer.ChunkSize - ChunkServer.HeaderSize;
+	//	int num = (int)Math.ceil((double)freedSpace / maxSize);
+		
+		boolean bigRecord = false;
+	//	if (num>1) {bigRecord = true;}
+		String targetHandle;
+		Vector<String> ChunkHandles = ofh.getChunkHandles();
+		for(int i=0;i<ChunkHandles.size();i++) {
+			if (ChunkHandles.get(i) == RecordID.getChunkHandle()) {
+				targetHandle = ChunkHandles.get(i);
+				ByteBuffer header = ByteBuffer.wrap(cs.readChunk(ChunkHandles.get(i),0,ChunkServer.HeaderSize));
+				// Read the number of records
+				int numRec = header.getInt();
+				// Read the next free offset
+				int offset = header.getInt();
+				// First Rec loc
+				int firstRec = header.getInt();
+				// Last Rec loc
+				int lastRec = header.getInt();
+				
+				boolean first = false;
+				boolean last = false;
+				
+				//Delete Record
+				RecordID = null;
+				//Update Header Accordingly
+				header.putInt(0,numRec-1);
+				//header firstRec
+				//header lastRec
+				return ClientFS.FSReturnVals.Success;
+			}
+		}
+		return ClientFS.FSReturnVals.RecDoesNotExist;
 	}
 
 	/**
@@ -177,8 +218,27 @@ public class ClientRec {
 	 * Example usage: ReadFirstRecord(FH1, tinyRec)
 	 */
 	public FSReturnVals ReadFirstRecord(FileHandle ofh, TinyRec rec){
-		return null;
-	}
+		if (ofh == null)
+			return ClientFS.FSReturnVals.BadHandle;
+		
+		// wasn't sure how to use ofh, because I thought you could retrieve the chunk handle from the code below
+		
+		String chunkHandle = rec.getRID().getChunkHandle();			
+		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, ChunkServer.HeaderSize));
+		if (header == null)
+			return ClientFS.FSReturnVals.RecDoesNotExist;
+		
+		// Read the number of records
+		int numRec = header.getInt();
+		// Read the next free offset/free slot
+		int offset = header.getInt();
+		// Read the first record offset
+		int firstRec = header.getInt();
+
+		rec.setPayload(cs.readChunk(chunkHandle, rec.getRID().getSlotID(), firstRec));
+
+		return ClientFS.FSReturnVals.Success;	
+		}
 
 	/**
 	 * Reads the last record of the file specified by ofh into payload Returns
