@@ -171,7 +171,7 @@ public class ClientRec {
 		if (ofh == null) {
 			return ClientFS.FSReturnVals.BadHandle;
 		}
-		if (RecordID != null) {
+		if (RecordID == null) {
 			return ClientFS.FSReturnVals.BadRecID;
 		}
 		
