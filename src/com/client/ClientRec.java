@@ -51,8 +51,10 @@ public class ClientRec {
 		if (ofh == null)
 			return ClientFS.FSReturnVals.BadHandle;
 		
-		if (RecordID != null)
-			return ClientFS.FSReturnVals.BadRecID;
+		if (RecordID != null) {
+			if (RecordID.getChunkHandle() != null)
+				return ClientFS.FSReturnVals.BadRecID;
+		}
 		
 		// First specify meta vs record
 		
@@ -110,7 +112,7 @@ public class ClientRec {
 
 				// payload + offset info + length info + type info
 				neededSpace = MetaByteSize + SubByteSize + LengthSize + effPayload.length + SlotSize;
-				int freeSpace = ChunkServer.ChunkSize - offset - (slotIDToSlotOffset(lastSlot));
+				int freeSpace = (slotIDToSlotOffset(lastSlot)) - offset;
 
 				// if the space needed fits within the current chunk
 				if (neededSpace <= freeSpace) {
