@@ -443,7 +443,7 @@ public class ClientRec {
 		// Update header info
 		numRec++;
 		offset = offset + effPayload.length;
-		updateChunkHeader(numRec, offset, firstSlot, lastSlot);
+		updateChunkHeader(numRec, offset, firstSlot, lastSlot, effHandle);
 
 		// Update RID		
 		RID rid = new RID();
@@ -453,7 +453,19 @@ public class ClientRec {
 		return rid;
 	}
 	
-	public void updateChunkHeader(int numRec, int offset, int firstSlot, int lastSlot) {
+	public void updateChunkHeader(int numRec, int offset, int firstSlot, int lastSlot, String chunkHandle) {
+		byte[] recordInfo = ByteBuffer.allocate(4).putInt(numRec).array();
+		byte[] offsetInfo = ByteBuffer.allocate(4).putInt(offset).array();
+		byte[] firstSlotInfo = ByteBuffer.allocate(SlotSize).putInt(firstSlot).array();
+		byte[] lastSlotInfo = ByteBuffer.allocate(SlotSize).putInt(lastSlot).array();
+		
+		byte[] payload = new byte[recordInfo.length + offsetInfo.length + firstSlotInfo.length + lastSlotInfo.length];
+		System.arraycopy(recordInfo, 0, payload, 0, recordInfo.length);
+		System.arraycopy(offsetInfo, 0, payload, recordInfo.length, offsetInfo.length);
+		System.arraycopy(firstSlotInfo, 0, payload, recordInfo.length+offsetInfo.length, firstSlotInfo.length);
+		System.arraycopy(lastSlotInfo, 0, payload, recordInfo.length+offsetInfo.length+firstSlotInfo.length, lastSlotInfo.length);
+		
+		cs.writeChunk(chunkHandle, payload, 0);
 		
 	}
 
