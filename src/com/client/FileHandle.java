@@ -43,6 +43,6 @@ public class FileHandle {
 	}
 	
 	public void setFilePath(String FilePath) {
-		this.filePath = filePath;
+		this.filePath = FilePath;
 	}
 }
