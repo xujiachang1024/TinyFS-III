@@ -168,7 +168,48 @@ public class ClientRec {
 	 * Example usage: DeleteRecord(FH1, RecID1)
 	 */
 	public FSReturnVals DeleteRecord(FileHandle ofh, RID RecordID) {
-		return null;
+		if (ofh == null) {
+			return ClientFS.FSReturnVals.BadHandle;
+		}
+		if (RecordID != null) {
+			return ClientFS.FSReturnVals.BadRecID;
+		}
+		
+		//how do I access payload with what i have to the the size
+	//	long freedSpace = TypeByteSize + LengthSize + payload.length + SlotSize;
+		int maxSize = ChunkServer.ChunkSize - ChunkServer.HeaderSize;
+	//	int num = (int)Math.ceil((double)freedSpace / maxSize);
+		
+		boolean bigRecord = false;
+	//	if (num>1) {bigRecord = true;}
+		String targetHandle;
+		Vector<String> ChunkHandles = ofh.getChunkHandles();
+		for(int i=0;i<ChunkHandles.size();i++) {
+			if (ChunkHandles.get(i) == RecordID.getChunkHandle()) {
+				targetHandle = ChunkHandles.get(i);
+				ByteBuffer header = ByteBuffer.wrap(cs.readChunk(ChunkHandles.get(i),0,ChunkServer.HeaderSize));
+				// Read the number of records
+				int numRec = header.getInt();
+				// Read the next free offset
+				int offset = header.getInt();
+				// First Rec loc
+				int firstRec = header.getInt();
+				// Last Rec loc
+				int lastRec = header.getInt();
+				
+				boolean first = false;
+				boolean last = false;
+				
+				//Delete Record
+				RecordID = null;
+				//Update Header Accordingly
+				header.putInt(0,numRec-1);
+				//header firstRec
+				//header lastRec
+				return ClientFS.FSReturnVals.Success;
+			}
+		}
+		return ClientFS.FSReturnVals.RecDoesNotExist;
 	}
 
 	/**
@@ -178,8 +219,27 @@ public class ClientRec {
 	 * Example usage: ReadFirstRecord(FH1, tinyRec)
 	 */
 	public FSReturnVals ReadFirstRecord(FileHandle ofh, TinyRec rec){
-		return null;
-	}
+		if (ofh == null)
+			return ClientFS.FSReturnVals.BadHandle;
+		
+		// wasn't sure how to use ofh, because I thought you could retrieve the chunk handle from the code below
+		
+		String chunkHandle = rec.getRID().getChunkHandle();			
+		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, ChunkServer.HeaderSize));
+		if (header == null)
+			return ClientFS.FSReturnVals.RecDoesNotExist;
+		
+		// Read the number of records
+		int numRec = header.getInt();
+		// Read the next free offset/free slot
+		int offset = header.getInt();
+		// Read the first record offset
+		int firstRec = header.getInt();
+
+		rec.setPayload(cs.readChunk(chunkHandle, rec.getRID().getSlotID(), firstRec));
+
+		return ClientFS.FSReturnVals.Success;	
+		}
 
 	/**
 	 * Reads the last record of the file specified by ofh into payload Returns
@@ -188,7 +248,25 @@ public class ClientRec {
 	 * Example usage: ReadLastRecord(FH1, tinyRec)
 	 */
 	public FSReturnVals ReadLastRecord(FileHandle ofh, TinyRec rec){
-		return null;
+		
+		if (ofh == null)
+			return ClientFS.FSReturnVals.BadHandle;
+		
+		// wasn't sure how to use ofh, because I thought you could retrieve the chunk handle from the code below
+		
+		String chunkHandle = rec.getRID().getChunkHandle();			
+		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, 8));
+		if (header == null)
+			return ClientFS.FSReturnVals.RecDoesNotExist;
+		
+		// Read the number of records
+		int numRec = header.getInt();
+		// Read the next free offset/free slot
+		int offset = header.getInt();
+
+		rec.setPayload(cs.readChunk(chunkHandle, rec.getRID().getSlotID(), 4));
+
+		return ClientFS.FSReturnVals.Success;
 	}
 
 	/**
@@ -200,7 +278,67 @@ public class ClientRec {
 	 * rec1, tinyRec2) 3. ReadNextRecord(FH1, rec2, tinyRec3)
 	 */
 	public FSReturnVals ReadNextRecord(FileHandle ofh, RID pivot, TinyRec rec){
-		return null;
+		
+		if (ofh == null)
+			return ClientFS.FSReturnVals.BadHandle;
+
+		String chunkHandle = rec.getRID().getChunkHandle();
+		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, 8));
+		int slotID = pivot.getSlotID();
+		// on 4/23/18 we discussed that our implementation would be to nullify records by setting slotID = -1
+		if (header == null || slotID == -1)
+			return ClientFS.FSReturnVals.RecDoesNotExist;
+		
+		// Read the number of records
+		int numRec = header.getInt();
+		// Read the next free offset/free slot
+		int offset = header.getInt();
+		
+		// pivot trying to access invalid index
+		if (slotID > offset)
+			return ClientFS.FSReturnVals.RecDoesNotExist;
+		
+		// pivot trying to read record that may be in next chunk, if RID points to last record of current chunk
+		if (slotID == offset) {
+			Vector<String> chunkHandles = ofh.getChunkHandles();
+			if (chunkHandles.contains(chunkHandle)) {	// idk if we need to check this
+				
+				int index = -1;	// arbitrary starting value to enter loop
+				int i = 0;		// forward iterating index
+				// keep searching forwards for an existing record to read from
+				while (index != chunkHandles.size()-1) {
+					index = chunkHandles.indexOf(chunkHandle)+i;
+					if (index == chunkHandles.size()-1)	// invalid pivot, since no record to read after
+						return ClientFS.FSReturnVals.RecDoesNotExist;
+					
+					String nextHandle = chunkHandles.get(index+1);	// index = size-1
+					ByteBuffer nextHeader = ByteBuffer.wrap(cs.readChunk(nextHandle, 0, 8));
+					
+					// unlikely case: chunk handle supposedly created, but no corresponding chunk
+					if (nextHeader == null)
+						return ClientFS.FSReturnVals.RecDoesNotExist;
+					
+					// Read the number of records
+					int nextNumRec = nextHeader.getInt();
+					// Read the next free offset/free slot
+					int nextOffset = nextHeader.getInt();
+					
+					if (nextNumRec != 0) {
+						cs.readChunk(nextHandle, offset, 4);	// offset b/c offset-1 for # of records and (offset-1)+1 for next record
+						return ClientFS.FSReturnVals.Success;
+					}	
+				}
+				return ClientFS.FSReturnVals.RecDoesNotExist;	// no next records to read exist
+				
+			}
+			else
+				return ClientFS.FSReturnVals.RecDoesNotExist;
+		}
+		
+		// case: still in same chunk
+		rec.setPayload(cs.readChunk(chunkHandle, slotID+1, 4));
+				
+		return ClientFS.FSReturnVals.Success;
 	}
 
 	/**
@@ -212,7 +350,72 @@ public class ClientRec {
 	 * recn-1, tinyRec2) 3. ReadPrevRecord(FH1, recn-2, tinyRec3)
 	 */
 	public FSReturnVals ReadPrevRecord(FileHandle ofh, RID pivot, TinyRec rec){
-		return null;
+		
+		if (ofh == null)
+			return ClientFS.FSReturnVals.BadHandle;
+
+		String chunkHandle = rec.getRID().getChunkHandle();
+		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, 8));
+		int slotID = pivot.getSlotID();
+		// on 4/23/18 we discussed that our implementation would be to nullify records by setting slotID = -1
+		if (header == null || slotID == -1)
+			return ClientFS.FSReturnVals.RecDoesNotExist;
+		
+		// Read the number of records
+		int numRec = header.getInt();
+		// Read the next free offset/free slot
+		int offset = header.getInt();
+		
+		// pivot trying to access invalid index
+//		if (slotID < header size)
+//			return ClientFS.FSReturnVals.RecDoesNotExist;
+		
+		// pivot trying to read record that may be in prev chunk, if RID points to last record of current chunk
+		if (slotID == offset) {
+			Vector<String> chunkHandles = ofh.getChunkHandles();
+			if (chunkHandles.contains(chunkHandle)) {	// idk if we need to check this
+				
+				int index = -1; //arbitrary starting value to enter loop
+				int i = 0;		//backwards iterating index
+				// keep searching backwards for an existing record to read from
+				while (index != 0) {
+					index = chunkHandles.indexOf(chunkHandle)-i;
+					if (index == 0)	// invalid pivot, since no record to read before
+						return ClientFS.FSReturnVals.RecDoesNotExist;
+					i++;
+					
+					String prevHandle = chunkHandles.get(index-i-1);
+					ByteBuffer prevHeader = ByteBuffer.wrap(cs.readChunk(prevHandle, 0, 8));
+					int prevNumRecords = ByteBuffer.wrap(cs.readChunk(prevHandle, 0, 4)).getInt();
+					
+					// unlikely case: chunk handle supposedly created, but no corresponding chunk
+					if (prevHeader == null)
+						return ClientFS.FSReturnVals.RecDoesNotExist;
+					
+					// Read the number of records
+					int prevNumRec = prevHeader.getInt();
+					// Read the next free offset/free slot
+					int prevOffset = prevHeader.getInt();
+					
+					if (prevNumRec != 0) {
+						TinyRec prevRec = rec;
+						prevRec.getRID().setChunkHandle(prevHandle);
+						ClientFS.FSReturnVals returnVal = ReadLastRecord(ofh, prevRec);
+						if (returnVal != ClientFS.FSReturnVals.Success)	// file is empty/bad handle
+							return returnVal;
+						return ClientFS.FSReturnVals.Success;
+					}
+				}
+				return ClientFS.FSReturnVals.RecDoesNotExist;	// no prev records to read exist
+			}
+			else
+				return ClientFS.FSReturnVals.RecDoesNotExist;
+		}
+		
+		// case: still in same chunk
+		rec.setPayload(cs.readChunk(chunkHandle, slotID-2, 4));
+				
+		return ClientFS.FSReturnVals.Success;
 	}
 	
 	public int slotIDToSlotOffset(int slotID) {
