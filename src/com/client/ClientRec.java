@@ -17,11 +17,11 @@ public class ClientRec {
 	public static final int SubByteSize = 1;
 	
 	// Meta vs Regular
-	public static final int Meta = 1;
-	public static final int Regular = 0;
+	public static final byte Meta = 1;
+	public static final byte Regular = 0;
 	// Sub vs Entire
-	public static final int Sub = 1;
-	public static final int Entire = 0;
+	public static final byte Sub = 1;
+	public static final byte Entire = 0;
 	
 	public static final int SlotSize = 4;
 	public static final int LengthSize = 4;
@@ -114,7 +114,7 @@ public class ClientRec {
 
 				// if the space needed fits within the current chunk
 				if (neededSpace <= freeSpace) {
-					int subType = Entire;
+					byte subType = Entire;
 					if (bigRecord) {
 						subType = Sub;
 					}
@@ -419,29 +419,19 @@ public class ClientRec {
 		return ChunkServer.ChunkSize - (4 * (slotID+1));
 	}
 	
-	public RID writeToChunk(byte[] payload, int numRec, int offset, String effHandle, String lastHandle, int metaType, int subType, int lastSlot, int firstSlot) {
+	public RID writeToChunk(byte[] payload, int numRec, int offset, String effHandle, String lastHandle, byte metaType, byte subType, int lastSlot, int firstSlot) {
 		
-		// Write type(2) + length + payload
+		// Write Meta + Sub + length + payload
 		byte[] effPayload = new byte[MetaByteSize + SubByteSize + LengthSize + payload.length];
 		
-		switch (type) {
-		case 0:
-			effPayload[0] = Meta;
-			break;
-		case 1:
-			effPayload[0] = Sub;
-			break;
-		case 2:
-			effPayload[0] = Regular;
-			break;
-		default:
-			break;
-		}
+		effPayload[0] = metaType;
+		effPayload[1] = subType;
 
 		byte[] payloadSize = ByteBuffer.allocate(4).putInt(payload.length).array();
 
 		System.arraycopy(payloadSize, 0, effPayload, 1, payloadSize.length);
 		System.arraycopy(payload, 0, effPayload, payloadSize.length, payload.length);
+		
 		cs.writeChunk(effHandle, effPayload, offset);
 
 		// Write slot ID and the starting offset of its payload
