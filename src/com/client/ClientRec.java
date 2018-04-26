@@ -58,11 +58,8 @@ public class ClientRec {
 		
 		// Then determine sub or regular
 		
-		ByteBuffer payloadBuffer = ByteBuffer.wrap(payload);
 		long neededSpace = MetaByteSize + SubByteSize + LengthSize + payload.length + SlotSize;
 		int num = (int)Math.ceil((double)neededSpace / MaxNonHeaderSize);
-		
-		int lastRecordSize = (int) (payload.length % MaxRawPayloadSize);
 		
 		boolean bigRecord = false;
 		// If it is a big record
