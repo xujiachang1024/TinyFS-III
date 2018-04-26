@@ -15,12 +15,13 @@ public class ClientRec {
 	public static final int SlotSize = 4;
 	public static final int LengthSize = 4;
 	
-	public static final int TypeByteSize = 1;
-	public static final byte Meta = 0;
-	public static final byte Sub = 1;
-	public static final byte Regular = 2;
+	public static final int MetaByteSize = 1;
+	public static final int SubByteSize = 1;
+	public static final int Meta = 1;
+	public static final int Sub = 1;
+	public static final int Regular = 0;
 	
-	// Record = typebyte + length + payload
+	// Record = metabyte + subbyte + length + payload
 	
 	// Temporary local chunkserver
 	private static ChunkServer cs;
@@ -51,11 +52,11 @@ public class ClientRec {
 		// Then determine sub or regular
 		
 		ByteBuffer payloadBuffer = ByteBuffer.wrap(payload);
-		long neededSpace = TypeByteSize + LengthSize + payload.length + SlotSize;
+		long neededSpace = MetaByteSize + SubByteSize + LengthSize + payload.length + SlotSize;
 		int maxSize = ChunkServer.ChunkSize - ChunkServer.HeaderSize;
 		int num = (int)Math.ceil((double)neededSpace / maxSize);
 		
-		int maxPayloadSize = maxSize - TypeByteSize - LengthSize - SlotSize;
+		int maxPayloadSize = maxSize - MetaByteSize - SubByteSize - LengthSize - SlotSize;
 		int lastChunkSize = (int) (payload.length % maxPayloadSize);
 		
 		boolean bigRecord = false;
@@ -104,7 +105,7 @@ public class ClientRec {
 				int offset = header.getInt();
 
 				// payload + offset info + length info + type info
-				neededSpace = TypeByteSize + LengthSize + effPayload.length + SlotSize;
+				neededSpace = MetaByteSize + SubByteSize + LengthSize + effPayload.length + SlotSize;
 				int freeSpace = ChunkServer.ChunkSize - offset - (SlotSize*numRec);
 
 
@@ -221,7 +222,7 @@ public class ClientRec {
 	public RID writeToChunk(byte[] payload, int numRec, int offset, String effHandle, String lastHandle, ByteBuffer header, int type) {
 		
 		// Write type(2) + length + payload
-		byte[] effPayload = new byte[TypeByteSize + LengthSize + payload.length];
+		byte[] effPayload = new byte[MetaByteSize + SubByteSize + LengthSize + payload.length];
 		
 		switch (type) {
 		case 0:
