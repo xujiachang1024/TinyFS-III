@@ -38,6 +38,12 @@ public class ClientRec {
 		
 		cs = new ChunkServer();
 	}
+	
+	// Temporary Constructor
+	public ClientRec(Master master, ChunkServer cs) {
+		this.master = master;
+		this.cs = cs;
+	}
 
 	/**
 	 * Appends a record to the open file as specified by ofh Returns BadHandle

@@ -25,6 +25,11 @@ public class ClientFS {
 	public ClientFS() {
 		master = new Master();
 	}
+	
+	// Temporary Constructor
+	public ClientFS(Master master) {
+		this.master = master;
+	}
 
 	/**
 	 * Creates the specified dirname in the src directory Returns

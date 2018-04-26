@@ -49,6 +49,13 @@ public class Master {
 		cs = new ChunkServer();
 	}
 	
+	// Temporary Constructor
+	public Master(ChunkServer cs) {
+		initializeMemory();
+		
+		this.cs = cs;
+	}
+	
 	/**
 	 * Initialize in-memory data structure for the master node
 	 */
