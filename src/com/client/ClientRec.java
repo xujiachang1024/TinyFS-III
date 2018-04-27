@@ -258,13 +258,14 @@ public class ClientRec {
 			
 		}
 		else if(meta == Regular && sub == Regular) {
-			recPayload = cs.readChunk(first, slotIDToSlotOffset(chunkloc+6), length);
+			recPayload = cs.readChunk(first, chunkloc+6, length);
 		}
 		RID newRID = new RID();
 		newRID.setChunkHandle(first);
 		newRID.setSlotID(firstRec);
 		rec.setRID(newRID);
 		rec.setPayload(recPayload);
+		
 		return ClientFS.FSReturnVals.Success;	
 		}
 
@@ -281,7 +282,7 @@ public class ClientRec {
 		
 		Vector<String> chunkHandles = ofh.getChunkHandles();
 		String chunkHandle = chunkHandles.get(chunkHandles.size()-1);			
-		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, ChunkServer.ChunkSize));
+		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, ChunkServer.HeaderSize));
 		if (header == null)
 			return ClientFS.FSReturnVals.RecDoesNotExist;
 		
@@ -292,15 +293,29 @@ public class ClientRec {
 		
 		int firstSlotID = header.getInt();
 		int lastSlotID = header.getInt();
+		byte[] recPayLoad = new byte[0];
 		
 		ByteBuffer lastRecSlot = ByteBuffer.wrap(cs.readChunk(chunkHandle, slotIDToSlotOffset(lastSlotID), 4));
 		int lastRecID = lastRecSlot.getInt();
 		
-		byte[] meta = cs.readChunk(chunkHandle, slotIDToSlotOffset(lastRecID), 1);
-		byte[] sub = cs.readChunk(chunkHandle, slotIDToSlotOffset(lastRecID)+1, 1);
-		byte[] recLen = cs.readChunk(chunkHandle, slotIDToSlotOffset(lastRecID)+2, 4);
-		byte[] recPayLoad = cs.readChunk(chunkHandle, slotIDToSlotOffset(lastRecID)+6, recLen.length);
-
+		ByteBuffer chunkdata = ByteBuffer.wrap(cs.readChunk(chunkHandle, lastRecID, 6));
+		byte meta = chunkdata.get();
+		byte sub = chunkdata.get();
+		int recLen = chunkdata.getInt();
+		if(meta == Meta) {
+			
+		}
+		else if (sub == Sub) {
+			
+		}
+		else if(meta == Regular && sub == Regular) {
+			recPayLoad = cs.readChunk(chunkHandle, lastRecID+6, recLen);
+		}
+		
+		RID newRID = new RID();
+		newRID.setChunkHandle(chunkHandle);
+		newRID.setSlotID(lastSlotID);
+		rec.setRID(newRID);
 		rec.setPayload(recPayLoad);
 
 		return ClientFS.FSReturnVals.Success;
