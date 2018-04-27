@@ -245,7 +245,8 @@ public class ClientRec {
 		int firstRec = header.getInt();
 		
 		ByteBuffer intro = ByteBuffer.wrap(cs.readChunk(first, slotIDToSlotOffset(firstRec), 4));
-		ByteBuffer chunkdata = ByteBuffer.wrap(cs.readChunk(first, intro.getInt(), 6));
+		int chunkloc = intro.getInt(); 
+		ByteBuffer chunkdata = ByteBuffer.wrap(cs.readChunk(first, chunkloc, 6));
 		byte meta = chunkdata.get();
 		byte sub = chunkdata.get();
 		int length = chunkdata.getInt();
@@ -257,11 +258,12 @@ public class ClientRec {
 			
 		}
 		else if(meta == Regular && sub == Regular) {
-			recPayload = cs.readChunk(first, slotIDToSlotOffset(intro.getInt())+6, length);
+			recPayload = cs.readChunk(first, slotIDToSlotOffset(chunkloc+6), length);
 		}
-		RID newRID = rec.getRID();
+		RID newRID = new RID();
 		newRID.setChunkHandle(first);
 		newRID.setSlotID(firstRec);
+		rec.setRID(newRID);
 		rec.setPayload(recPayload);
 		return ClientFS.FSReturnVals.Success;	
 		}
@@ -458,7 +460,7 @@ public class ClientRec {
 		byte[] payloadSize = ByteBuffer.allocate(4).putInt(payload.length).array();
 
 		System.arraycopy(payloadSize, 0, effPayload, 2, payloadSize.length);
-		System.arraycopy(payload, 0, effPayload, payloadSize.length, payload.length);
+		System.arraycopy(payload, 0, effPayload, 2+payloadSize.length, payload.length);
 		
 		cs.writeChunk(effHandle, effPayload, offset);
 
