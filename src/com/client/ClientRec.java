@@ -148,8 +148,7 @@ public class ClientRec {
 					// if the payload does not fit
 					// Pad the chunk
 					offset = slotIDToSlotOffset(lastSlot);
-					header.putInt(4, offset);
-					byte[] headerInfo = header.array();
+					byte[] headerInfo = ByteBuffer.allocate(4).putInt(offset).array();
 					cs.writeChunk(effHandle, headerInfo, 4);
 
 					// Tell Master to add another chunk to the file
@@ -158,6 +157,9 @@ public class ClientRec {
 				}
 			}
 		}
+		
+		// Contruct meta payload if # of rids > 1
+		
 		
 		RecordID = rids.lastElement();
 		
@@ -242,21 +244,27 @@ public class ClientRec {
 		// Read the first record offset
 		int firstRec = header.getInt();
 		
-		ByteBuffer intro = ByteBuffer.wrap(cs.readChunk(first, slotIDToSlotOffset(firstRec), 6));
-		byte meta = intro.get();
-		byte sub = intro.get();
-		int length = intro.getInt();
+		ByteBuffer intro = ByteBuffer.wrap(cs.readChunk(first, slotIDToSlotOffset(firstRec), 4));
+		int chunkloc = intro.getInt(); 
+		ByteBuffer chunkdata = ByteBuffer.wrap(cs.readChunk(first, chunkloc, 6));
+		byte meta = chunkdata.get();
+		byte sub = chunkdata.get();
+		int length = chunkdata.getInt();
+		byte[] recPayload = new byte[0];
 		if (meta == Meta) {
 			
 		}
-		if(sub ==Sub) {
+		else if(sub ==Sub) {
 			
 		}
-		if(meta == Regular && sub == Regular) {
-			cs.readChunk(first, slotIDToSlotOffset(firstRec)+6, length);
+		else if(meta == Regular && sub == Regular) {
+			recPayload = cs.readChunk(first, slotIDToSlotOffset(chunkloc+6), length);
 		}
-
-
+		RID newRID = new RID();
+		newRID.setChunkHandle(first);
+		newRID.setSlotID(firstRec);
+		rec.setRID(newRID);
+		rec.setPayload(recPayload);
 		return ClientFS.FSReturnVals.Success;	
 		}
 
@@ -461,8 +469,8 @@ public class ClientRec {
 
 		byte[] payloadSize = ByteBuffer.allocate(4).putInt(payload.length).array();
 
-		System.arraycopy(payloadSize, 0, effPayload, 1, payloadSize.length);
-		System.arraycopy(payload, 0, effPayload, payloadSize.length, payload.length);
+		System.arraycopy(payloadSize, 0, effPayload, 2, payloadSize.length);
+		System.arraycopy(payload, 0, effPayload, 2+payloadSize.length, payload.length);
 		
 		cs.writeChunk(effHandle, effPayload, offset);
 
