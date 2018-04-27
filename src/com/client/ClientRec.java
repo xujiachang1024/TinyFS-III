@@ -176,7 +176,7 @@ public class ClientRec {
 		if (ofh == null) {
 			return ClientFS.FSReturnVals.BadHandle;
 		}
-		if (RecordID != null) {
+		if (RecordID == null) {
 			return ClientFS.FSReturnVals.BadRecID;
 		}
 		
@@ -229,8 +229,9 @@ public class ClientRec {
 		
 		// wasn't sure how to use ofh, because I thought you could retrieve the chunk handle from the code below
 		
-		String chunkHandle = rec.getRID().getChunkHandle();			
-		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, ChunkServer.HeaderSize));
+		Vector <String>  chunkHandles = ofh.getChunkHandles();	
+		String first = chunkHandles.get(0);
+		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(first, 0, ChunkServer.HeaderSize));
 		if (header == null)
 			return ClientFS.FSReturnVals.RecDoesNotExist;
 		
@@ -240,8 +241,21 @@ public class ClientRec {
 		int offset = header.getInt();
 		// Read the first record offset
 		int firstRec = header.getInt();
+		
+		ByteBuffer intro = ByteBuffer.wrap(cs.readChunk(first, slotIDToSlotOffset(firstRec), 6));
+		byte meta = intro.get();
+		byte sub = intro.get();
+		int length = intro.getInt();
+		if (meta == Meta) {
+			
+		}
+		if(sub ==Sub) {
+			
+		}
+		if(meta == Regular && sub == Regular) {
+			cs.readChunk(first, slotIDToSlotOffset(firstRec)+6, length);
+		}
 
-		rec.setPayload(cs.readChunk(chunkHandle, rec.getRID().getSlotID(), firstRec));
 
 		return ClientFS.FSReturnVals.Success;	
 		}
