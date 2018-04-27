@@ -49,6 +49,13 @@ public class Master {
 		cs = new ChunkServer();
 	}
 	
+	// Temporary Constructor
+	public Master(ChunkServer cs) {
+		initializeMemory();
+		
+		this.cs = cs;
+	}
+	
 	/**
 	 * Initialize in-memory data structure for the master node
 	 */
@@ -482,7 +489,7 @@ public class Master {
 		byte[] numRec = ByteBuffer.allocate(4).putInt(0).array();
 		byte[] offset = ByteBuffer.allocate(4).putInt(ChunkServer.HeaderSize).array();
 		byte[] first = ByteBuffer.allocate(4).putInt(0).array();
-		byte[] last = ByteBuffer.allocate(4).putInt(0).array();
+		byte[] last = ByteBuffer.allocate(4).putInt(-1).array();
 
 		System.arraycopy(numRec, 0, header, 0, numRec.length);
 		System.arraycopy(offset, 0, header, numRec.length, offset.length);
