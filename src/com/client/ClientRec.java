@@ -158,6 +158,9 @@ public class ClientRec {
 			}
 		}
 		
+		// Contruct meta payload if # of rids > 1
+		
+		
 		RecordID = rids.lastElement();
 		
 		return ClientFS.FSReturnVals.Success;
@@ -450,7 +453,7 @@ public class ClientRec {
 
 		byte[] payloadSize = ByteBuffer.allocate(4).putInt(payload.length).array();
 
-		System.arraycopy(payloadSize, 0, effPayload, 1, payloadSize.length);
+		System.arraycopy(payloadSize, 0, effPayload, 2, payloadSize.length);
 		System.arraycopy(payload, 0, effPayload, payloadSize.length, payload.length);
 		
 		cs.writeChunk(effHandle, effPayload, offset);
