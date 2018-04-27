@@ -258,13 +258,14 @@ public class ClientRec {
 			
 		}
 		else if(meta == Regular && sub == Regular) {
-			recPayload = cs.readChunk(first, slotIDToSlotOffset(chunkloc+6), length);
+			recPayload = cs.readChunk(first, chunkloc+6, length);
 		}
 		RID newRID = new RID();
 		newRID.setChunkHandle(first);
 		newRID.setSlotID(firstRec);
 		rec.setRID(newRID);
 		rec.setPayload(recPayload);
+		
 		return ClientFS.FSReturnVals.Success;	
 		}
 
@@ -279,10 +280,9 @@ public class ClientRec {
 		if (ofh == null)
 			return ClientFS.FSReturnVals.BadHandle;
 		
-		// wasn't sure how to use ofh, because I thought you could retrieve the chunk handle from the code below
-		
-		String chunkHandle = rec.getRID().getChunkHandle();			
-		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, 8));
+		Vector<String> chunkHandles = ofh.getChunkHandles();
+		String chunkHandle = chunkHandles.get(chunkHandles.size()-1);			
+		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, ChunkServer.HeaderSize));
 		if (header == null)
 			return ClientFS.FSReturnVals.RecDoesNotExist;
 		
@@ -290,8 +290,33 @@ public class ClientRec {
 		int numRec = header.getInt();
 		// Read the next free offset/free slot
 		int offset = header.getInt();
-
-		rec.setPayload(cs.readChunk(chunkHandle, rec.getRID().getSlotID(), 4));
+		
+		int firstSlotID = header.getInt();
+		int lastSlotID = header.getInt();
+		byte[] recPayLoad = new byte[0];
+		
+		ByteBuffer lastRecSlot = ByteBuffer.wrap(cs.readChunk(chunkHandle, slotIDToSlotOffset(lastSlotID), 4));
+		int lastRecID = lastRecSlot.getInt();
+		
+		ByteBuffer chunkdata = ByteBuffer.wrap(cs.readChunk(chunkHandle, lastRecID, 6));
+		byte meta = chunkdata.get();
+		byte sub = chunkdata.get();
+		int recLen = chunkdata.getInt();
+		if(meta == Meta) {
+			
+		}
+		else if (sub == Sub) {
+			
+		}
+		else if(meta == Regular && sub == Regular) {
+			recPayLoad = cs.readChunk(chunkHandle, lastRecID+6, recLen);
+		}
+		
+		RID newRID = new RID();
+		newRID.setChunkHandle(chunkHandle);
+		newRID.setSlotID(lastSlotID);
+		rec.setRID(newRID);
+		rec.setPayload(recPayLoad);
 
 		return ClientFS.FSReturnVals.Success;
 	}
@@ -309,8 +334,8 @@ public class ClientRec {
 		if (ofh == null)
 			return ClientFS.FSReturnVals.BadHandle;
 
-		String chunkHandle = rec.getRID().getChunkHandle();
-		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, 8));
+		String chunkHandle = pivot.getChunkHandle();
+		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, ChunkServer.ChunkSize));
 		int slotID = pivot.getSlotID();
 		// on 4/23/18 we discussed that our implementation would be to nullify records by setting slotID = -1
 		if (header == null || slotID == -1)
