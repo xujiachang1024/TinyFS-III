@@ -498,5 +498,41 @@ public class ClientRec {
 		cs.writeChunk(chunkHandle, payload, 0);
 		
 	}
+	
+	/**
+	 * Populates the payload byte array with the extracted payload
+	 * Returns the type of the record
+	 * 0 = regular, entire
+	 * 1 = regular, sub
+	 * 2 = meta, entire
+	 * 3 = meta, sub
+	 * @param chunkHandle
+	 * @param slotID
+	 * @param payload
+	 */
+	public int getPayloadFromSlotID(String chunkHandle, int slotID, byte[] payload) {
+		ByteBuffer offsetBuf = ByteBuffer.wrap(cs.readChunk(chunkHandle, slotIDToSlotOffset(slotID), 4));
+		int recOffset = offsetBuf.getInt();
+		
+		// 6 bytes for non-payload in the record
+		ByteBuffer recBuf = ByteBuffer.wrap(cs.readChunk(chunkHandle, recOffset, 6));
+		byte meta = recBuf.get();
+		byte sub = recBuf.get();
+		int length = recBuf.getInt();
+		
+		// populate the payload
+		payload = cs.readChunk(chunkHandle, recOffset + 6, length);
+		
+		if (meta == Meta) {
+			if (sub == Sub)
+				return 3;
+			return 2;
+		}
+		else {
+			if (sub == Sub)
+				return 1;
+			return 0;
+		}
+	}
 
 }
