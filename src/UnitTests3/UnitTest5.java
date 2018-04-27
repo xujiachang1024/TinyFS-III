@@ -3,8 +3,10 @@ package UnitTests3;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
+import com.chunkserver.ChunkServer;
 import com.client.ClientFS;
 import com.client.ClientFS.FSReturnVals;
+import com.master.Master;
 import com.client.ClientRec;
 import com.client.FileHandle;
 import com.client.RID;
@@ -21,10 +23,12 @@ public class UnitTest5 {
 	static final String TestName = "Unit Test 5: ";
 	
 	public static void main(String[] args) {
+		ChunkServer cs = new ChunkServer();
+		Master master = new Master(cs);
 		
 		System.out.println(TestName + "Same as Unit Test 4 except that it manipulates the records starting with the last record, going backwards, and delete the even numbered records using their first four bytes.");
 		String dir1 = "Shahram";
-		ClientFS cfs = new ClientFS();
+		ClientFS cfs = new ClientFS(master);
 		FSReturnVals fsrv = cfs.CreateDir("/", dir1);
 		if ( fsrv != FSReturnVals.Success ){
 			System.out.println("Unit test 5 result: fail!");
@@ -40,7 +44,7 @@ public class UnitTest5 {
 		FSReturnVals ofd = cfs.OpenFile("/" + dir1 + "/emp1", fh);
 		byte[] payload = null;
 		int intSize = Integer.SIZE / Byte.SIZE;	// 4 bytes
-		ClientRec crec = new ClientRec();
+		ClientRec crec = new ClientRec(master,cs);
 		for (int i = 0; i < NumRecs; i++){
 			payload = new byte[104];
 			byte[] ValInBytes = ByteBuffer.allocate(intSize).putInt(i).array();
