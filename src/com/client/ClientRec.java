@@ -241,21 +241,25 @@ public class ClientRec {
 		// Read the first record offset
 		int firstRec = header.getInt();
 		
-		ByteBuffer intro = ByteBuffer.wrap(cs.readChunk(first, slotIDToSlotOffset(firstRec), 6));
-		byte meta = intro.get();
-		byte sub = intro.get();
-		int length = intro.getInt();
+		ByteBuffer intro = ByteBuffer.wrap(cs.readChunk(first, slotIDToSlotOffset(firstRec), 4));
+		ByteBuffer chunkdata = ByteBuffer.wrap(cs.readChunk(first, intro.getInt(), 6));
+		byte meta = chunkdata.get();
+		byte sub = chunkdata.get();
+		int length = chunkdata.getInt();
+		byte[] recPayload = new byte[0];
 		if (meta == Meta) {
 			
 		}
-		if(sub ==Sub) {
+		else if(sub ==Sub) {
 			
 		}
-		if(meta == Regular && sub == Regular) {
-			cs.readChunk(first, slotIDToSlotOffset(firstRec)+6, length);
+		else if(meta == Regular && sub == Regular) {
+			recPayload = cs.readChunk(first, slotIDToSlotOffset(intro.getInt())+6, length);
 		}
-
-
+		RID newRID = rec.getRID();
+		newRID.setChunkHandle(first);
+		newRID.setSlotID(firstRec);
+		rec.setPayload(recPayload);
 		return ClientFS.FSReturnVals.Success;	
 		}
 
