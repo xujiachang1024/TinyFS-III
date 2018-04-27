@@ -319,7 +319,7 @@ public class ClientRec {
 		if (ofh == null)
 			return ClientFS.FSReturnVals.BadHandle;
 
-		String chunkHandle = rec.getRID().getChunkHandle();
+		String chunkHandle = pivot.getChunkHandle();
 		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, ChunkServer.ChunkSize));
 		int slotID = pivot.getSlotID();
 		// on 4/23/18 we discussed that our implementation would be to nullify records by setting slotID = -1
