@@ -148,8 +148,7 @@ public class ClientRec {
 					// if the payload does not fit
 					// Pad the chunk
 					offset = slotIDToSlotOffset(lastSlot);
-					header.putInt(4, offset);
-					byte[] headerInfo = header.array();
+					byte[] headerInfo = ByteBuffer.allocate(4).putInt(offset).array();
 					cs.writeChunk(effHandle, headerInfo, 4);
 
 					// Tell Master to add another chunk to the file
