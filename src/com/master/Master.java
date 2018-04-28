@@ -4,16 +4,19 @@ import com.chunkserver.ChunkServer;
 import com.client.ClientFS;
 import com.client.FileHandle;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -161,7 +164,11 @@ public class Master {
 		// check if src is a dir (ending '/')
 		// see if src exist in hashmap if yes, add dirname to its list, and append src+dirname to key with an empty list
 		
-		// Enforce "src" to end with "/"
+		// Log
+		String[] args = {src, dirname};
+		appendLog("CreateDir", args);
+		
+		// Enforce "src" to end with "/"		
 		if (!src.endsWith("/")) {
 			src += "/";
 		}
@@ -201,6 +208,10 @@ public class Master {
 	 */
 	public FSReturnVals DeleteDir(String src, String dirname) {
 		
+		// Log
+		String[] args = {src, dirname};
+		appendLog("DeleteDir", args);
+		
 		// Enforce "src" to end with "/"
 		if (!src.endsWith("/")) {
 			src += "/";
@@ -238,6 +249,10 @@ public class Master {
 	 * "/Shahram/CSCI485" to "/Shahram/CSCI550"
 	 */
 	public FSReturnVals RenameDir(String src, String NewName) {
+		
+		// Log
+		String[] args = {src, NewName};
+		appendLog("RenameDir", args);
 		
 		// Enforce "src" to end with "/"
 		if (!src.endsWith("/")) {
@@ -395,6 +410,9 @@ public class Master {
 	 * Example usage: Createfile("/Shahram/CSCI485/Lecture1/", "Intro.pptx")
 	 */
 	public FSReturnVals CreateFile(String tgtdir, String filename) {
+		
+		//TODO: Need to remove duplicate AddChunk log entry (else it will run addchunk again)
+		
 		// Check if the target directory exists
 		if (!directories.containsKey(tgtdir))
 			return ClientFS.FSReturnVals.SrcDirNotExistent;
@@ -420,6 +438,11 @@ public class Master {
 	 */
 	// It makes the file as 'hidden' (notated by the '$' in the beginning) to be garbage collected later
 	public FSReturnVals DeleteFile(String tgtdir, String filename) {
+		
+		// Log
+		String[] args = {tgtdir, filename};
+		appendLog("DeleteFile", args);
+		
 		if (!directories.containsKey(tgtdir))
 			return ClientFS.FSReturnVals.SrcDirNotExistent;
 		
@@ -445,7 +468,7 @@ public class Master {
 	 *
 	 * Example usage: OpenFile("/Shahram/CSCI485/Lecture1/Intro.pptx", FH1)
 	 */
-	public FSReturnVals OpenFile(String FilePath, FileHandle ofh) {
+	public FSReturnVals OpenFile(String FilePath, FileHandle ofh) {		
 		// Check if the file exist
 		if (!files.containsKey(FilePath))
 			return ClientFS.FSReturnVals.FileDoesNotExist;
@@ -481,6 +504,10 @@ public class Master {
 	 * @return Success if success
 	 */
 	public FSReturnVals AddChunk(String FilePath) {
+		// Log
+		String[] args = {FilePath};
+		appendLog("AddChunk", args);
+		
 		if (!files.containsKey(FilePath))
 			return ClientFS.FSReturnVals.FileDoesNotExist;
 		
@@ -515,30 +542,41 @@ public class Master {
 		return ClientFS.FSReturnVals.Fail;
 	}
 	
-	public FSReturnVals close() {
-		// Save the state of the master when it closes (checkpointing)
-		saveMasterBackup();
-		return ClientFS.FSReturnVals.Success;
-	}
-	
-	public FSReturnVals appendLog(String operation, String[] arguements) {
+	public FSReturnVals appendLog(String operation, String[] arguments) {
 		try
 		{
-			// Update the log file
-			FileWriter fw;
-			PrintWriter pw;
-			// Create file if not exist
-			File logFile = new File(masterBackupLogName);
-			if (!logFile.exists()) {
-				fw = new FileWriter(logFile);
-				pw = new PrintWriter(fw);
+			Vector<String> operations = new Vector<String>();
+			int row = readLog(operations);
+			if (row >= MaxLogRow) {
+				// if log file too long
+				// save the memory structures (checkpointing)
+				saveMasterBackup();
 				
-				pw.println(0);
+				// Delete old log
+				File log = new File(masterBackupLogName);
+				log.delete();
+				
+				// Reset the log info
+				row = 0;
+				operations.clear();
 			}
-			fw = new FileWriter(logFile, true);
-			pw = new PrintWriter(fw);
 			
+			FileWriter fw = new FileWriter(masterBackupLogName);
+			PrintWriter pw = new PrintWriter(fw);
 			
+			pw.println(++row);
+			String args = "";
+			for(int i=0;i<arguments.length;i++) {
+				args += arguments[i];
+				if (i < (arguments.length - 1))
+					args += ',';
+			}
+			for (int i=0; i<operations.size(); i++)
+				pw.println(operations.get(i));
+			pw.printf("%d,%s,%s", (new Timestamp(System.currentTimeMillis())).getTime(), operation, args);
+			
+			pw.flush();
+			pw.close();
 			
 			return ClientFS.FSReturnVals.Success;
 		}
@@ -547,5 +585,37 @@ public class Master {
 			System.out.println("Logging failed");
 		}
 		return ClientFS.FSReturnVals.Fail;
+	}
+	
+	public int readLog(Vector<String> operations) {
+		// Read the log file
+		try
+		{
+			FileReader fr = new FileReader(masterBackupLogName);
+			BufferedReader br = new BufferedReader(fr);
+			
+			// Read the number of lines
+			int row = Integer.parseInt(br.readLine());
+			
+			// Read all the operations
+			String operation;
+			if (operations != null) {
+				while((operation = br.readLine()) != null) {
+					operations.add(operation);
+				}
+			}
+			br.close();
+			
+			return row;
+		}
+		catch(FileNotFoundException ex)
+		{
+			System.out.println("File not found");
+		}
+		catch(IOException ex)
+		{
+			System.out.println("Error reading the file");
+		}
+		return 0;
 	}
 }
