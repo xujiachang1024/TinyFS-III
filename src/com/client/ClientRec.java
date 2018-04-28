@@ -245,44 +245,62 @@ public class ClientRec {
 		if (ofh == null) {
 			return ClientFS.FSReturnVals.BadHandle;
 		}
+		if (ofh.getFilePath() == null)
+			return ClientFS.FSReturnVals.BadHandle;
+		
 		if (RecordID == null) {
 			return ClientFS.FSReturnVals.BadRecID;
 		}
+		// Check if given chunkHandle exist in the file
+		Vector<String> chunkHandles = ofh.getChunkHandles();
+		String chunkHandle = RecordID.getChunkHandle();
+		if (!chunkHandles.contains(chunkHandle))
+			return ClientFS.FSReturnVals.BadHandle;
+		
+		int slotID = RecordID.getSlotID();
+		
+		// Read the chunk header
+		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, ChunkServer.HeaderSize));
+		int numRec = header.getInt();
+		int offset = header.getInt();
+		int firstRec = header.getInt();
+		int lastRec = header.getInt();
+		
 		
 		//how do I access payload with what i have to the the size
 	//	long freedSpace = TypeByteSize + LengthSize + payload.length + SlotSize;
 		int maxSize = ChunkServer.ChunkSize - ChunkServer.HeaderSize;
 	//	int num = (int)Math.ceil((double)freedSpace / maxSize);
 		
-		boolean bigRecord = false;
-	//	if (num>1) {bigRecord = true;}
-		String targetHandle;
-		Vector<String> ChunkHandles = ofh.getChunkHandles();
-		for(int i=0;i<ChunkHandles.size();i++) {
-			if (ChunkHandles.get(i) == RecordID.getChunkHandle()) {
-				targetHandle = ChunkHandles.get(i);
-				ByteBuffer header = ByteBuffer.wrap(cs.readChunk(ChunkHandles.get(i),0,ChunkServer.HeaderSize));
-				// Read the number of records
-				int numRec = header.getInt();
-				// Read the next free offset
-				int offset = header.getInt();
-				// First Rec loc
-				int firstRec = header.getInt();
-				// Last Rec loc
-				int lastRec = header.getInt();
-				
-				boolean first = false;
-				boolean last = false;
-				
-				//Delete Record
-				RecordID = null;
-				//Update Header Accordingly
-				header.putInt(0,numRec-1);
-				//header firstRec
-				//header lastRec
-				return ClientFS.FSReturnVals.Success;
-			}
-		}
+//		boolean bigRecord = false;
+//	//	if (num>1) {bigRecord = true;}
+//		String targetHandle;
+//		Vector<String> ChunkHandles = ofh.getChunkHandles();
+//		for(int i=0;i<ChunkHandles.size();i++) {
+//			if (ChunkHandles.get(i) == RecordID.getChunkHandle()) {
+//				targetHandle = ChunkHandles.get(i);
+//				ByteBuffer header = ByteBuffer.wrap(cs.readChunk(ChunkHandles.get(i),0,ChunkServer.HeaderSize));
+//				// Read the number of records
+//				int numRec = header.getInt();
+//				// Read the next free offset
+//				int offset = header.getInt();
+//				// First Rec loc
+//				int firstRec = header.getInt();
+//				// Last Rec loc
+//				int lastRec = header.getInt();
+//				
+//				boolean first = false;
+//				boolean last = false;
+//				
+//				//Delete Record
+//				RecordID = null;
+//				//Update Header Accordingly
+//				header.putInt(0,numRec-1);
+//				//header firstRec
+//				//header lastRec
+//				return ClientFS.FSReturnVals.Success;
+//			}
+//		}
 		return ClientFS.FSReturnVals.RecDoesNotExist;
 	}
 
@@ -406,14 +424,8 @@ public class ClientRec {
 		int pivotSlotID = pivot.getSlotID();
 		int nextSlotID = pivotSlotID + 1;
 		Vector<String> chunkHandles = ofh.getChunkHandles();
+		int ind = chunkHandles.indexOf(chunkHandle);
 		
-		int ind = -1;
-		for (int i=0; i<chunkHandles.size(); i++) {
-			if (chunkHandle.equals(chunkHandles.get(i))) {
-				ind = i;
-				break;
-			}
-		}
 		// If chunkHandle is not a part of the file
 		if (ind == -1)
 			return ClientFS.FSReturnVals.BadHandle;
