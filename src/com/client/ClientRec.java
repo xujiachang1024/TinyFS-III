@@ -237,46 +237,56 @@ public class ClientRec {
 		// Read the chunk header
 		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, ChunkServer.HeaderSize));
 		int numRec = header.getInt();
-		int offset = header.getInt();
+		int freeOffset = header.getInt();
 		int firstRec = header.getInt();
 		int lastRec = header.getInt();
 		
+		// if invalid chunk or slotID
+		if (numRec == 0 || slotID < firstRec || slotID > lastRec)
+			return ClientFS.FSReturnVals.RecDoesNotExist;
 		
-		//how do I access payload with what i have to the the size
-	//	long freedSpace = TypeByteSize + LengthSize + payload.length + SlotSize;
-		int maxSize = ChunkServer.ChunkSize - ChunkServer.HeaderSize;
-	//	int num = (int)Math.ceil((double)freedSpace / maxSize);
-		
-//		boolean bigRecord = false;
-//	//	if (num>1) {bigRecord = true;}
-//		String targetHandle;
-//		Vector<String> ChunkHandles = ofh.getChunkHandles();
-//		for(int i=0;i<ChunkHandles.size();i++) {
-//			if (ChunkHandles.get(i) == RecordID.getChunkHandle()) {
-//				targetHandle = ChunkHandles.get(i);
-//				ByteBuffer header = ByteBuffer.wrap(cs.readChunk(ChunkHandles.get(i),0,ChunkServer.HeaderSize));
-//				// Read the number of records
-//				int numRec = header.getInt();
-//				// Read the next free offset
-//				int offset = header.getInt();
-//				// First Rec loc
-//				int firstRec = header.getInt();
-//				// Last Rec loc
-//				int lastRec = header.getInt();
-//				
-//				boolean first = false;
-//				boolean last = false;
-//				
-//				//Delete Record
-//				RecordID = null;
-//				//Update Header Accordingly
-//				header.putInt(0,numRec-1);
-//				//header firstRec
-//				//header lastRec
-//				return ClientFS.FSReturnVals.Success;
-//			}
-//		}
-		return ClientFS.FSReturnVals.RecDoesNotExist;
+		// Read the content at slotID
+		int recOffset = ByteBuffer.wrap(cs.readChunk(chunkHandle, slotIDToSlotOffset(slotID), SlotSize)).getInt();
+		// If record has been deleted
+		if (recOffset == -1)
+			return ClientFS.FSReturnVals.RecDoesNotExist;
+		// Else delete the record
+		else {
+			// Invalidate the current slot
+			recOffset = -1;
+			cs.writeChunk(chunkHandle, ByteBuffer.allocate(SlotSize).putInt(recOffset).array(), slotIDToSlotOffset(slotID));
+			
+			// Update the header
+			numRec--;
+			
+			// Move the first / last slot pointer accordingly
+			if (slotID == firstRec) {
+				// Move the first slot id to the next valid slotID
+				firstRec++;
+				while (firstRec <= lastRec) {
+					int candidateContent = ByteBuffer.wrap(cs.readChunk(chunkHandle, slotIDToSlotOffset(firstRec), SlotSize)).getInt();
+					if (candidateContent != -1)
+						break;
+					firstRec++;
+				}
+			}
+			else if (slotID == lastRec) {
+				lastRec--;
+				while (lastRec >= firstRec) {
+					int candidateContent = ByteBuffer.wrap(cs.readChunk(chunkHandle, slotIDToSlotOffset(lastRec), SlotSize)).getInt();
+					if (candidateContent != -1)
+						break;
+					lastRec--;
+				}
+			}
+			if (firstRec > lastRec)
+				// no valid record in the chunk?
+				return ClientFS.FSReturnVals.Fail;
+			
+			updateChunkHeader(numRec, freeOffset, firstRec, lastRec, chunkHandle);
+		}
+
+		return ClientFS.FSReturnVals.Success;
 	}
 
 	/**
