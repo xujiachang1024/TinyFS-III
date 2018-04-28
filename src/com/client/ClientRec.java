@@ -333,50 +333,78 @@ public class ClientRec {
 		
 		if (ofh == null)
 			return ClientFS.FSReturnVals.BadHandle;
-
+		
+		// Get the index of the chunkHandle in the file
 		String chunkHandle = pivot.getChunkHandle();
-		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, ChunkServer.ChunkSize));
 		int pivotSlotID = pivot.getSlotID();
-		// on 4/23/18 we discussed that our implementation would be to nullify records by setting slotID = -1
-		if (header == null || pivotSlotID == -1)
-			return ClientFS.FSReturnVals.RecDoesNotExist;
+		int nextSlotID = pivotSlotID + 1;
+		Vector<String> chunkHandles = ofh.getChunkHandles();
 		
-		// Read the number of records
-		int numRec = header.getInt();
-		// Read the next free offset/free slot
-		int offset = header.getInt();
-		int firstSlotID = header.getInt();
-		int lastSlotID = header.getInt();
+		int ind = -1;
+		for (int i=0; i<chunkHandles.size(); i++) {
+			if (chunkHandle.equals(chunkHandles.get(i))) {
+				ind = i;
+				break;
+			}
+		}
 		
-		byte[] recPayLoad = new byte[0];
-		
-		if (pivotSlotID < lastSlotID) {
-			System.out.println("still in current chunk");
-			ByteBuffer nextSlot = ByteBuffer.wrap(cs.readChunk(chunkHandle, slotIDToSlotOffset(pivotSlotID+1), 4));
-			int nextRecID = nextSlot.getInt();
+		// Iterate until last chunkHandle of the file (unless it succeeds)
+		while (ind < chunkHandles.size()) {
+			ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, ChunkServer.ChunkSize));
+			// on 4/23/18 we discussed that our implementation would be to nullify records by setting slotID = -1
+			if (header == null || pivotSlotID == -1)
+				return ClientFS.FSReturnVals.RecDoesNotExist;
 			
-			ByteBuffer nextRec = ByteBuffer.wrap(cs.readChunk(chunkHandle, nextRecID, 6));		
-			byte meta = nextRec.get();
-			byte sub = nextRec.get();
-			int recLen = nextRec.getInt();
-			if(meta == Meta) {
-				
-			}
-			else if (sub == Sub) {
-				
-			}
-			else if(meta == Regular && sub == Regular) {
-				recPayLoad = cs.readChunk(chunkHandle, nextRecID+6, recLen);
-			}
+			// Read the number of records
+			int numRec = header.getInt();
+			// Read the next free offset/free slot
+			int offset = header.getInt();
+			int firstSlotID = header.getInt();
+			int lastSlotID = header.getInt();
 			
-			RID newRID = new RID();
-			newRID.setChunkHandle(chunkHandle);
-			newRID.setSlotID(pivotSlotID+1);
-			rec.setRID(newRID);
-			rec.setPayload(recPayLoad);
+			byte[] recPayLoad = new byte[0];
+			
+			// if there are no more next records in the chunk
+			if ((numRec == 0) || (nextSlotID > lastSlotID)) {
+				// Get the next chunk
+				ind++;
+				// Reset the nextSlotID
+				nextSlotID = 0;
+				if (ind == chunkHandles.size())
+					return ClientFS.FSReturnVals.RecDoesNotExist;
+				chunkHandle = chunkHandles.get(ind);
+			}
+			// if the next record within the chunk
+			else if (nextSlotID <= lastSlotID) {
+				System.out.println("still in current chunk");
+				ByteBuffer nextSlot = ByteBuffer.wrap(cs.readChunk(chunkHandle, slotIDToSlotOffset(nextSlotID), 4));
+				int nextRecID = nextSlot.getInt();
+				
+				ByteBuffer nextRec = ByteBuffer.wrap(cs.readChunk(chunkHandle, nextRecID, 6));		
+				byte meta = nextRec.get();
+				byte sub = nextRec.get();
+				int recLen = nextRec.getInt();
+				if(meta == Meta) {
+					
+				}
+				else if (sub == Sub) {
+					
+				}
+				else if(meta == Regular && sub == Regular) {
+					recPayLoad = cs.readChunk(chunkHandle, nextRecID+6, recLen);
+				}
+				
+				RID newRID = new RID();
+				newRID.setChunkHandle(chunkHandle);
+				newRID.setSlotID(nextSlotID);
+				rec.setRID(newRID);
+				rec.setPayload(recPayLoad);
+				
+				return ClientFS.FSReturnVals.Success;
+			}
 		}
 				
-		return ClientFS.FSReturnVals.Success;
+		return ClientFS.FSReturnVals.Fail;
 		
 		// pivot trying to access invalid index
 //		if (slotID > offset)
