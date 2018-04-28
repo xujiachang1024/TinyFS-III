@@ -554,7 +554,8 @@ public class ClientRec {
 		int lastSlotID = pivotHeader.getInt();
 		
 		// Read the pivot record
-		ByteBuffer pivotIntro = ByteBuffer.wrap(cs.readChunk(pivotHandle, slotIDToSlotOffset(pivotSlotID), MetaByteSize + SubByteSize));
+		int pivotRecOffset = ByteBuffer.wrap(cs.readChunk(pivotHandle, slotIDToSlotOffset(pivotSlotID), SlotSize)).getInt();
+		ByteBuffer pivotIntro = ByteBuffer.wrap(cs.readChunk(pivotHandle, pivotRecOffset, MetaByteSize + SubByteSize));
 		if (pivotIntro == null) {
 			return ClientFS.FSReturnVals.RecDoesNotExist;
 		}
@@ -576,7 +577,7 @@ public class ClientRec {
 			while (true) {
 				// Retrieve the next chunk handle
 				int pivotIndex = chunkHandles.indexOf(pivotHandle);
-				if (pivotIndex >= chunkHandles.size()) {
+				if (pivotIndex+1 >= chunkHandles.size()) {
 					return ClientFS.FSReturnVals.RecDoesNotExist;
 				}
 				nextHandle = chunkHandles.get(pivotIndex + 1);
@@ -605,8 +606,8 @@ public class ClientRec {
 		}
 		
 		// Read the intro of the next record
-		int nextSlotOffset = slotIDToSlotOffset(nextSlotID);
-		ByteBuffer nextIntro = ByteBuffer.wrap(cs.readChunk(nextHandle, nextSlotOffset, IntroSize));
+		int nextRecOffset = ByteBuffer.wrap(cs.readChunk(nextHandle, slotIDToSlotOffset(nextSlotID), SlotSize)).getInt();
+		ByteBuffer nextIntro = ByteBuffer.wrap(cs.readChunk(nextHandle, nextRecOffset, IntroSize));
 		if (nextIntro == null) {
 			return ClientFS.FSReturnVals.RecDoesNotExist;
 		}
@@ -616,7 +617,7 @@ public class ClientRec {
 		
 		// If the next record is Regular & Entire
 		if (nextMetaType == Regular && nextSubType == Entire) {
-			byte[] nextPayload = cs.readChunk(nextHandle, nextSlotOffset + IntroSize, nextLength);
+			byte[] nextPayload = cs.readChunk(nextHandle, nextRecOffset + IntroSize, nextLength);
 			RID nextRID = new RID();
 			nextRID.setChunkHandle(nextHandle);
 			nextRID.setSlotID(nextSlotID);
@@ -636,7 +637,7 @@ public class ClientRec {
 			while (true) {
 				
 				// Append the current "subPayload" to the end of "nextPayload"
-				byte[] subPayload = cs.readChunk(nextHandle, nextSlotOffset + IntroSize, nextLength);
+				byte[] subPayload = cs.readChunk(nextHandle, nextRecOffset + IntroSize, nextLength);
 				nextPayload = new byte[tempPayload.length + subPayload.length];
 				System.arraycopy(tempPayload, 0, nextPayload, 0, tempPayload.length);
 				System.arraycopy(subPayload, 0, nextPayload, tempPayload.length, subPayload.length);
@@ -652,8 +653,8 @@ public class ClientRec {
 				nextSlotID = firstSlotIDNext;
 				
 				// Read the intro of the following "subPayload"
-				nextSlotOffset = slotIDToSlotOffset(nextSlotID);
-				nextIntro = ByteBuffer.wrap(cs.readChunk(nextHandle, nextSlotOffset, IntroSize));
+				nextRecOffset = ByteBuffer.wrap(cs.readChunk(nextHandle, slotIDToSlotOffset(nextSlotID), SlotSize)).getInt();
+				nextIntro = ByteBuffer.wrap(cs.readChunk(nextHandle, nextRecOffset, IntroSize));
 				nextMetaType = nextIntro.get();
 				nextSubType = nextIntro.get();
 				nextLength = nextIntro.getInt();
@@ -689,8 +690,8 @@ public class ClientRec {
 					nextSlotID = firstSlotIDNext;
 					
 					// Read the intro of the following "subPayload"
-					nextSlotOffset = slotIDToSlotOffset(nextSlotID);
-					nextIntro = ByteBuffer.wrap(cs.readChunk(nextHandle, nextSlotOffset, IntroSize));
+					nextRecOffset = ByteBuffer.wrap(cs.readChunk(nextHandle, slotIDToSlotOffset(nextSlotID), SlotSize)).getInt();
+					nextIntro = ByteBuffer.wrap(cs.readChunk(nextHandle, nextRecOffset, IntroSize));
 					nextMetaType = nextIntro.get();
 					nextSubType = nextIntro.get();
 					nextLength = nextIntro.getInt();
