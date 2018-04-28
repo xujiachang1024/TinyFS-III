@@ -28,6 +28,8 @@ public class ClientRec {
 	public static final int MaxNonHeaderSize = ChunkServer.ChunkSize - ChunkServer.HeaderSize;
 	public static final int MaxRawPayloadSize = MaxNonHeaderSize - MetaByteSize - SubByteSize - LengthSize - SlotSize;
 	
+	public static final int SlotNullified = -1;
+	
 	// Record = metabyte + subbyte + length + payload
 	
 	// Temporary local chunkserver
@@ -313,12 +315,12 @@ public class ClientRec {
 		// Read the content at slotID
 		int recOffset = ByteBuffer.wrap(cs.readChunk(chunkHandle, slotIDToSlotOffset(slotID), SlotSize)).getInt();
 		// If record has been deleted
-		if (recOffset == -1)
+		if (recOffset == SlotNullified)
 			return ClientFS.FSReturnVals.RecDoesNotExist;
 		// Else delete the record
 		else {
 			// Invalidate the current slot
-			recOffset = -1;
+			recOffset = SlotNullified;
 			cs.writeChunk(chunkHandle, ByteBuffer.allocate(SlotSize).putInt(recOffset).array(), slotIDToSlotOffset(slotID));
 			
 			// Update the header
@@ -330,7 +332,7 @@ public class ClientRec {
 				firstRec++;
 				while (firstRec <= lastRec) {
 					int candidateContent = ByteBuffer.wrap(cs.readChunk(chunkHandle, slotIDToSlotOffset(firstRec), SlotSize)).getInt();
-					if (candidateContent != -1)
+					if (candidateContent != SlotNullified)
 						break;
 					firstRec++;
 				}
@@ -339,7 +341,7 @@ public class ClientRec {
 				lastRec--;
 				while (lastRec >= firstRec) {
 					int candidateContent = ByteBuffer.wrap(cs.readChunk(chunkHandle, slotIDToSlotOffset(lastRec), SlotSize)).getInt();
-					if (candidateContent != -1)
+					if (candidateContent != SlotNullified)
 						break;
 					lastRec--;
 				}
@@ -351,6 +353,30 @@ public class ClientRec {
 			updateChunkHeader(numRec, freeOffset, firstRec, lastRec, chunkHandle);
 		}
 
+		return ClientFS.FSReturnVals.Success;
+	}
+	
+	public FSReturnVals DeleteRecordAlt(FileHandle ofh, RID RecordID) {
+		if (ofh == null) {
+			return ClientFS.FSReturnVals.BadHandle;
+		}
+		if (ofh.getFilePath() == null)
+			return ClientFS.FSReturnVals.BadHandle;
+		
+		if (RecordID == null) {
+			return ClientFS.FSReturnVals.BadRecID;
+		}
+		// Check if given chunkHandle exist in the file
+		Vector<String> chunkHandles = ofh.getChunkHandles();
+		String chunkHandle = RecordID.getChunkHandle();
+		if (!chunkHandles.contains(chunkHandle)) {
+			return ClientFS.FSReturnVals.BadHandle;
+		}
+		
+		int slotID = RecordID.getSlotID();
+		
+		
+		
 		return ClientFS.FSReturnVals.Success;
 	}
 
