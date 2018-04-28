@@ -116,6 +116,7 @@ public class UnitTest5 {
 			}
 		}
 		fsrv = cfs.CloseFile(fh);
+		master.close();
 		System.out.println(TestName + "Success!");
 	}
 
