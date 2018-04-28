@@ -176,6 +176,33 @@ public class ClientRec {
 				System.arraycopy(slot, 0, metaPayload, tempPayload.length + handle.length, slot.length);
 				tempPayload = Arrays.copyOf(metaPayload, metaPayload.length);
 			}
+			
+			long metaNeededSpace = MetaByteSize + SubByteSize + LengthSize + payload.length + SlotSize;
+			int numMeta = (int)Math.ceil((double)metaNeededSpace / MaxNonHeaderSize);
+			
+			boolean bigMetaRecord = false;
+			if (numMeta > 1) {
+				bigMetaRecord = true;
+			}
+			
+			Vector<byte[]> subMetaPayloads = new Vector<byte[]>();
+			for (int i = 0; i < numMeta; i++) {
+				int startIndex = i * MaxRawPayloadSize;
+				int endIndex = (i+1) * MaxRawPayloadSize;
+				if (i == num - 1) {
+					endIndex = metaPayload.length;
+				}
+				subMetaPayloads.add(Arrays.copyOfRange(metaPayload, startIndex, endIndex));
+			}
+			
+			Vector<RID> ridForMeta = new Vector<RID>();
+			for (int i = 0; i < subMetaPayloads.size(); i++) {
+				byte[] effMetaPayload = subMetaPayloads.get(i);
+				boolean success = false;
+				while (!success) {
+					
+				}
+			}
 		}
 		
 		return ClientFS.FSReturnVals.Success;
@@ -406,7 +433,6 @@ public class ClientRec {
 			}
 			// if the next record within the chunk
 			else if (nextSlotID <= lastSlotID) {
-				System.out.println("still in current chunk");
 				ByteBuffer nextSlot = ByteBuffer.wrap(cs.readChunk(chunkHandle, slotIDToSlotOffset(nextSlotID), 4));
 				int nextRecID = nextSlot.getInt();
 				
@@ -436,48 +462,7 @@ public class ClientRec {
 				
 		return ClientFS.FSReturnVals.Fail;
 		
-		// pivot trying to access invalid index
-//		if (slotID > offset)
-//			return ClientFS.FSReturnVals.RecDoesNotExist;
-//		
-//		// pivot trying to read record that may be in next chunk, if RID points to last record of current chunk
-//		if (slotID == offset) {
-//			Vector<String> chunkHandles = ofh.getChunkHandles();
-//			if (chunkHandles.contains(chunkHandle)) {	// idk if we need to check this
-//				
-//				int index = -1;	// arbitrary starting value to enter loop
-//				int i = 0;		// forward iterating index
-//				// keep searching forwards for an existing record to read from
-//				while (index != chunkHandles.size()-1) {
-//					index = chunkHandles.indexOf(chunkHandle)+i;
-//					if (index == chunkHandles.size()-1)	// invalid pivot, since no record to read after
-//						return ClientFS.FSReturnVals.RecDoesNotExist;
-//					
-//					String nextHandle = chunkHandles.get(index+1);	// index = size-1
-//					ByteBuffer nextHeader = ByteBuffer.wrap(cs.readChunk(nextHandle, 0, 8));
-//					
-//					// unlikely case: chunk handle supposedly created, but no corresponding chunk
-//					if (nextHeader == null)
-//						return ClientFS.FSReturnVals.RecDoesNotExist;
-//					
-//					// Read the number of records
-//					int nextNumRec = nextHeader.getInt();
-//					// Read the next free offset/free slot
-//					int nextOffset = nextHeader.getInt();
-//					
-//					if (nextNumRec != 0) {
-//						cs.readChunk(nextHandle, offset, 4);	// offset b/c offset-1 for # of records and (offset-1)+1 for next record
-//						return ClientFS.FSReturnVals.Success;
-//					}	
-//				}
-//				return ClientFS.FSReturnVals.RecDoesNotExist;	// no next records to read exist
-//				
-//			}
-//			else
-//				return ClientFS.FSReturnVals.RecDoesNotExist;
-//		}
 		
-		// case: still in same chunk
 	}
 
 	/**
