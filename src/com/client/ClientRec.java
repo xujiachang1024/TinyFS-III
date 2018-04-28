@@ -159,9 +159,24 @@ public class ClientRec {
 		}
 		
 		// Contruct meta payload if # of rids > 1
-		
-		
-		RecordID = rids.lastElement();
+		if (rids.size() > 1) {
+			
+			// Initialize the "metaPayload" array and its temp copy
+			byte[] metaPayload = new byte[0];
+			byte[] tempPayload = new byte[0];
+			
+			// Loop throught the "rids" vector and build the "metaPayload" array
+			for (int i = 0; i < rids.size(); i++) {
+				RID rid = rids.get(i);
+				byte[] handle = rid.getChunkHandle().getBytes();
+				byte[] slot = ByteBuffer.allocate(SlotSize).putInt(rid.getSlotID()).array();
+				metaPayload = new byte[tempPayload.length + handle.length + slot.length];
+				System.arraycopy(tempPayload, 0, metaPayload, 0, tempPayload.length);
+				System.arraycopy(handle, 0, metaPayload, tempPayload.length, handle.length);
+				System.arraycopy(slot, 0, metaPayload, tempPayload.length + handle.length, slot.length);
+				tempPayload = Arrays.copyOf(metaPayload, metaPayload.length);
+			}
+		}
 		
 		return ClientFS.FSReturnVals.Success;
 	}
@@ -464,7 +479,7 @@ public class ClientRec {
 			return ClientFS.FSReturnVals.BadHandle;
 
 		String chunkHandle = rec.getRID().getChunkHandle();
-		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, 8));
+		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, ChunkServer.HeaderSize));
 		int slotID = pivot.getSlotID();
 		// on 4/23/18 we discussed that our implementation would be to nullify records by setting slotID = -1
 		if (header == null || slotID == -1)
@@ -474,7 +489,9 @@ public class ClientRec {
 		int numRec = header.getInt();
 		// Read the next free offset/free slot
 		int offset = header.getInt();
-		
+		int firstSlotID = header.getInt();
+		int lastSlotID = header.getInt();
+		byte[] recPayload = new byte[0];
 		// pivot trying to access invalid index
 //		if (slotID < header size)
 //			return ClientFS.FSReturnVals.RecDoesNotExist;
