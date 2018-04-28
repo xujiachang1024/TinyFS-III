@@ -27,7 +27,7 @@ public class UnitTest5_1 {
 		ChunkServer cs = new ChunkServer();
 		Master master = new Master(cs);
 				
-		System.out.println(TestName + "Same as Unit Test 4 except that it manipulates the records starting with the last record, going backwards, and delete the even numbered records using their first four bytes.");
+		System.out.println(TestName + "Same as Unit Test 5 except that it just reads from the results of Unit Test 5");
 		String dir1 = "Shahram";
 		ClientFS cfs = new ClientFS(master);
 		FSReturnVals fsrv;
