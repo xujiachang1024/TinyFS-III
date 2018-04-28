@@ -158,49 +158,114 @@ public class ClientRec {
 			}
 		}
 		
-		// Contruct meta payload if # of rids > 1
-		if (rids.size() > 1) {
+		// Keep appending the meta records as long as the "rids" vector is long
+		while (rids.size() > 1) {
 			
 			// Initialize the "metaPayload" array and its temp copy
 			byte[] metaPayload = new byte[0];
 			byte[] tempPayload = new byte[0];
 			
-			// Loop throught the "rids" vector and build the "metaPayload" array
+			// Loop through the "rids" vector and build the "metaPayload" array
 			for (int i = 0; i < rids.size(); i++) {
+				
+				// Get the current RID at index i
 				RID rid = rids.get(i);
+				
+				// Get the chunk handle and the slot ID of the current RID
 				byte[] handle = rid.getChunkHandle().getBytes();
 				byte[] slot = ByteBuffer.allocate(SlotSize).putInt(rid.getSlotID()).array();
+				
+				// Reallocate the length of the "metaPayload" to accommodate the current RID
 				metaPayload = new byte[tempPayload.length + handle.length + slot.length];
+				
+				// Copy the old "tempPayload", current "handle", and current "slot"
 				System.arraycopy(tempPayload, 0, metaPayload, 0, tempPayload.length);
 				System.arraycopy(handle, 0, metaPayload, tempPayload.length, handle.length);
 				System.arraycopy(slot, 0, metaPayload, tempPayload.length + handle.length, slot.length);
+				
+				// Get a new copy of the "metaPayload"
 				tempPayload = Arrays.copyOf(metaPayload, metaPayload.length);
 			}
 			
+			// Calculate the needed space and number of needed chunks for the "metaPayload"
 			long metaNeededSpace = MetaByteSize + SubByteSize + LengthSize + payload.length + SlotSize;
 			int numMeta = (int)Math.ceil((double)metaNeededSpace / MaxNonHeaderSize);
 			
+			// Decide whether the "metaPayload" is big
 			boolean bigMetaRecord = false;
 			if (numMeta > 1) {
 				bigMetaRecord = true;
 			}
 			
+			// Break down the "metaPayload" into a vector of small byte arrays
 			Vector<byte[]> subMetaPayloads = new Vector<byte[]>();
 			for (int i = 0; i < numMeta; i++) {
+				
+				// Calculate the start and end index of the smaller chunks
 				int startIndex = i * MaxRawPayloadSize;
 				int endIndex = (i+1) * MaxRawPayloadSize;
+				
+				// If this is the last smaller chunks
 				if (i == num - 1) {
 					endIndex = metaPayload.length;
 				}
+				
+				// Copy this smaller chunks into the "subMetaPayloads" vector
 				subMetaPayloads.add(Arrays.copyOfRange(metaPayload, startIndex, endIndex));
 			}
 			
-			Vector<RID> ridForMeta = new Vector<RID>();
+			// Clear the "rids" vector
+			rids.clear();
+			
+			// Append the "subMetaPayloads" vector into the chunks
 			for (int i = 0; i < subMetaPayloads.size(); i++) {
+				
+				// Get the current effective (smaller) metaPayload
 				byte[] effMetaPayload = subMetaPayloads.get(i);
+				
 				boolean success = false;
 				while (!success) {
+					// Get the last chunk handle of the file handle
+					String lastHandle = ofh.getChunkHandles().lastElement();
+					String effHandle = lastHandle;
 					
+					// Read the header info 
+					ByteBuffer header = ByteBuffer.wrap(cs.readChunk(effHandle, 0, ChunkServer.HeaderSize));
+					int numRec = header.getInt();
+					int offset = header.getInt();
+					int firstSlot = header.getInt();
+					int lastSlot = header.getInt();
+					
+					// Calculate the needed space for this smaller metaPayload
+					metaNeededSpace = MetaByteSize + SubByteSize + LengthSize + effMetaPayload.length + SlotSize;
+					int freeSpace = (slotIDToSlotOffset(lastSlot)) - offset;
+					
+					// If this smaller metaPaylaod can fit into this chunk
+					if (metaNeededSpace <= freeSpace) {
+						
+						// Decide the "subType"
+						byte subType = Entire;
+						if (bigMetaRecord) {
+							subType = Sub;
+						}
+						
+						// Write this smaller metaPayload into this chunk
+						rids.add(writeToChunk(effMetaPayload, numRec, offset, effHandle, lastHandle, Meta, subType, lastSlot, firstSlot));
+						success = true;
+					}
+					
+					// Cannot fit in to this chunk
+					else {
+						
+						// Pad the rest of this chunk
+						offset = slotIDToSlotOffset(lastSlot);
+						
+						// Open a chunk
+						byte[] headerInfo = ByteBuffer.allocate(4).putInt(offset).array();
+						cs.writeChunk(effHandle, headerInfo, 4);
+						master.AddChunk(ofh.getFilePath());
+						master.OpenFile(ofh.getFilePath(), ofh);
+					}
 				}
 			}
 		}
@@ -488,70 +553,73 @@ public class ClientRec {
 		if (ofh == null)
 			return ClientFS.FSReturnVals.BadHandle;
 
-		String chunkHandle = rec.getRID().getChunkHandle();
-		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, ChunkServer.HeaderSize));
-		int slotID = pivot.getSlotID();
-		// on 4/23/18 we discussed that our implementation would be to nullify records by setting slotID = -1
-		if (header == null || slotID == -1)
-			return ClientFS.FSReturnVals.RecDoesNotExist;
+		String chunkHandle = pivot.getChunkHandle();
+		int pivotSlotID = pivot.getSlotID();
+		int prevSlotID = pivotSlotID - 1;
+		Vector <String> chunkHandles = ofh.getChunkHandles();
+		int ind = chunkHandles.indexOf(chunkHandle);
+
+		if (ind == -1)
+			return ClientFS.FSReturnVals.BadHandle;
 		
-		// Read the number of records
-		int numRec = header.getInt();
-		// Read the next free offset/free slot
-		int offset = header.getInt();
-		int firstSlotID = header.getInt();
-		int lastSlotID = header.getInt();
-		byte[] recPayload = new byte[0];
-		// pivot trying to access invalid index
-//		if (slotID < header size)
-//			return ClientFS.FSReturnVals.RecDoesNotExist;
-		
-		// pivot trying to read record that may be in prev chunk, if RID points to last record of current chunk
-		if (slotID == offset) {
-			Vector<String> chunkHandles = ofh.getChunkHandles();
-			if (chunkHandles.contains(chunkHandle)) {	// idk if we need to check this
-				
-				int index = -1; //arbitrary starting value to enter loop
-				int i = 0;		//backwards iterating index
-				// keep searching backwards for an existing record to read from
-				while (index != 0) {
-					index = chunkHandles.indexOf(chunkHandle)-i;
-					if (index == 0)	// invalid pivot, since no record to read before
-						return ClientFS.FSReturnVals.RecDoesNotExist;
-					i++;
-					
-					String prevHandle = chunkHandles.get(index-i-1);
-					ByteBuffer prevHeader = ByteBuffer.wrap(cs.readChunk(prevHandle, 0, 8));
-					int prevNumRecords = ByteBuffer.wrap(cs.readChunk(prevHandle, 0, 4)).getInt();
-					
-					// unlikely case: chunk handle supposedly created, but no corresponding chunk
-					if (prevHeader == null)
-						return ClientFS.FSReturnVals.RecDoesNotExist;
-					
-					// Read the number of records
-					int prevNumRec = prevHeader.getInt();
-					// Read the next free offset/free slot
-					int prevOffset = prevHeader.getInt();
-					
-					if (prevNumRec != 0) {
-						TinyRec prevRec = rec;
-						prevRec.getRID().setChunkHandle(prevHandle);
-						ClientFS.FSReturnVals returnVal = ReadLastRecord(ofh, prevRec);
-						if (returnVal != ClientFS.FSReturnVals.Success)	// file is empty/bad handle
-							return returnVal;
-						return ClientFS.FSReturnVals.Success;
-					}
-				}
-				return ClientFS.FSReturnVals.RecDoesNotExist;	// no prev records to read exist
-			}
-			else
+		//working on it
+		while (ind >= 0) {
+			ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, ChunkServer.ChunkSize));
+			// on 4/23/18 we discussed that our implementation would be to nullify records by setting slotID = -1
+			if (header == null || pivotSlotID == -1)
 				return ClientFS.FSReturnVals.RecDoesNotExist;
-		}
-		
-		// case: still in same chunk
-		rec.setPayload(cs.readChunk(chunkHandle, slotID-2, 4));
+			
+			// Read the number of records
+			int numRec = header.getInt();
+			// Read the next free offset/free slot
+			int offset = header.getInt();
+			int firstSlotID = header.getInt();
+			int lastSlotID = header.getInt();
+			
+			byte[] recPayLoad = new byte[0];
+			
+			// if there are no more prev records in the chunk
+			if ((numRec == 0) || (prevSlotID < firstSlotID)) {
+				// Get the prev chunk
+				ind--;
+				// Reset the prevSlotID to start of
+				prevSlotID = lastSlotID;
+				if (ind == 0)
+					return ClientFS.FSReturnVals.RecDoesNotExist;
+				chunkHandle = chunkHandles.get(ind);
+			}
+			// if the next record within the chunk
+			else if (prevSlotID >= firstSlotID) {
+				ByteBuffer prevSlot = ByteBuffer.wrap(cs.readChunk(chunkHandle, slotIDToSlotOffset(prevSlotID), 4));
+				int prevRecID = prevSlot.getInt();
 				
-		return ClientFS.FSReturnVals.Success;
+				ByteBuffer prevRec = ByteBuffer.wrap(cs.readChunk(chunkHandle, prevRecID, 6));		
+				byte meta = prevRec.get();
+				byte sub = prevRec.get();
+				int recLen = prevRec.getInt();
+				if(meta == Meta) {
+					
+				}
+				else if (sub == Sub) {
+					
+				}
+				else if(meta == Regular && sub == Regular) {
+					recPayLoad = cs.readChunk(chunkHandle, prevRecID+6, recLen);
+				}
+				
+				RID newRID = new RID();
+				newRID.setChunkHandle(chunkHandle);
+				newRID.setSlotID(prevSlotID);
+				rec.setRID(newRID);
+				rec.setPayload(recPayLoad);
+				
+				return ClientFS.FSReturnVals.Success;
+			}
+		}
+				
+		return ClientFS.FSReturnVals.Fail;
+		
+		
 	}
 	
 	public int slotIDToSlotOffset(int slotID) {
