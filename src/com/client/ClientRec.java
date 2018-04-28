@@ -176,6 +176,33 @@ public class ClientRec {
 				System.arraycopy(slot, 0, metaPayload, tempPayload.length + handle.length, slot.length);
 				tempPayload = Arrays.copyOf(metaPayload, metaPayload.length);
 			}
+			
+			long metaNeededSpace = MetaByteSize + SubByteSize + LengthSize + payload.length + SlotSize;
+			int numMeta = (int)Math.ceil((double)metaNeededSpace / MaxNonHeaderSize);
+			
+			boolean bigMetaRecord = false;
+			if (numMeta > 1) {
+				bigMetaRecord = true;
+			}
+			
+			Vector<byte[]> subMetaPayloads = new Vector<byte[]>();
+			for (int i = 0; i < numMeta; i++) {
+				int startIndex = i * MaxRawPayloadSize;
+				int endIndex = (i+1) * MaxRawPayloadSize;
+				if (i == num - 1) {
+					endIndex = metaPayload.length;
+				}
+				subMetaPayloads.add(Arrays.copyOfRange(metaPayload, startIndex, endIndex));
+			}
+			
+			Vector<RID> ridForMeta = new Vector<RID>();
+			for (int i = 0; i < subMetaPayloads.size(); i++) {
+				byte[] effMetaPayload = subMetaPayloads.get(i);
+				boolean success = false;
+				while (!success) {
+					
+				}
+			}
 		}
 		
 		return ClientFS.FSReturnVals.Success;
