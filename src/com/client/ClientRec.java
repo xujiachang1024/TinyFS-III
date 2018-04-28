@@ -362,6 +362,9 @@ public class ClientRec {
 				break;
 			}
 		}
+		// If chunkHandle is not a part of the file
+		if (ind == -1)
+			return ClientFS.FSReturnVals.BadHandle;
 		
 		// Iterate until last chunkHandle of the file (unless it succeeds)
 		while (ind < chunkHandles.size()) {
