@@ -522,90 +522,8 @@ public class ClientRec {
 	 *
 	 * Example usage: 1. ReadFirstRecord(FH1, tinyRec1) 2. ReadNextRecord(FH1,
 	 * rec1, tinyRec2) 3. ReadNextRecord(FH1, rec2, tinyRec3)
-	 */
-	public FSReturnVals ReadNextRecord(FileHandle ofh, RID pivot, TinyRec rec){
-		
-		if (ofh == null)
-			return ClientFS.FSReturnVals.BadHandle;
-		
-		// Get the index of the chunkHandle in the file
-		String chunkHandle = pivot.getChunkHandle();
-		int pivotSlotID = pivot.getSlotID();
-		int nextSlotID = pivotSlotID + 1;
-		Vector<String> chunkHandles = ofh.getChunkHandles();
-		int ind = chunkHandles.indexOf(chunkHandle);
-		
-		// If chunkHandle is not a part of the file
-		if (ind == -1)
-			return ClientFS.FSReturnVals.BadHandle;
-		
-		// Iterate until last chunkHandle of the file (unless it succeeds)
-		while (ind < chunkHandles.size()) {
-			ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, ChunkServer.ChunkSize));
-			// on 4/23/18 we discussed that our implementation would be to nullify records by setting slotID = -1
-			if (header == null || pivotSlotID == -1)
-				return ClientFS.FSReturnVals.RecDoesNotExist;
-			
-			// Read the number of records
-			int numRec = header.getInt();
-			// Read the next free offset/free slot
-			int offset = header.getInt();
-			int firstSlotID = header.getInt();
-			int lastSlotID = header.getInt();
-			
-			byte[] recPayLoad = new byte[0];
-			
-			// if there are no more next records in the chunk
-			if ((numRec == 0) || (nextSlotID > lastSlotID)) {
-				// Get the next chunk
-				ind++;
-				// Reset the nextSlotID
-				nextSlotID = 0;
-				if (ind == chunkHandles.size())
-					return ClientFS.FSReturnVals.RecDoesNotExist;
-				chunkHandle = chunkHandles.get(ind);
-			}
-			// if the next record within the chunk
-			else if (nextSlotID <= lastSlotID) {
-				if (nextSlotID < firstSlotID)
-					nextSlotID = firstSlotID;
-				ByteBuffer nextSlot = ByteBuffer.wrap(cs.readChunk(chunkHandle, slotIDToSlotOffset(nextSlotID), 4));
-				int nextRecOffset = nextSlot.getInt();
-				
-				// If nextRec is valid
-				if (nextRecOffset != -1) {
-					ByteBuffer nextRec = ByteBuffer.wrap(cs.readChunk(chunkHandle, nextRecOffset, 6));		
-					byte meta = nextRec.get();
-					byte sub = nextRec.get();
-					int recLen = nextRec.getInt();
-					if(meta == Meta) {
-						
-					}
-					else if (sub == Sub) {
-						
-					}
-					else if(meta == Regular && sub == Entire) {
-						recPayLoad = cs.readChunk(chunkHandle, nextRecOffset+6, recLen);
-					}
-					
-					RID newRID = new RID();
-					newRID.setChunkHandle(chunkHandle);
-					newRID.setSlotID(nextSlotID);
-					rec.setRID(newRID);
-					rec.setPayload(recPayLoad);
-					
-					return ClientFS.FSReturnVals.Success;
-				}
-				nextSlotID++;
-			}
-		}
-				
-		return ClientFS.FSReturnVals.Fail;
-		
-		
-	}
-	
-	public FSReturnVals ReadNextRecordAlt(FileHandle ofh, RID pivot, TinyRec rec) {
+	 */	
+	public FSReturnVals ReadNextRecord(FileHandle ofh, RID pivot, TinyRec rec) {
 		
 		if (ofh == null) {
 			return ClientFS.FSReturnVals.BadHandle;
@@ -710,6 +628,82 @@ public class ClientRec {
 		// If the next record is Regular & Sub
 		else if (nextMetaType == Regular && nextSubType == Sub) {
 			
+			// Create the "nextPayload" array and its copy
+			byte[] nextPayload = new byte[0];
+			byte[] tempPayload = new byte[0];
+			
+			// Iterate through all the Regular Sub records
+			while (true) {
+				
+				// Append the current "subPayload" to the end of "nextPayload"
+				byte[] subPayload = cs.readChunk(nextHandle, nextSlotOffset + IntroSize, nextLength);
+				nextPayload = new byte[tempPayload.length + subPayload.length];
+				System.arraycopy(tempPayload, 0, nextPayload, 0, tempPayload.length);
+				System.arraycopy(subPayload, 0, nextPayload, tempPayload.length, subPayload.length);
+				tempPayload = Arrays.copyOf(nextPayload, nextPayload.length);
+				
+				// Find the chunk handle, and slot ID of the following "subPayload"
+				nextHandle = chunkHandles.get(chunkHandles.indexOf(nextHandle) + 1);
+				ByteBuffer nextHeader = ByteBuffer.wrap(cs.readChunk(nextHandle, 0, ChunkServer.HeaderSize));
+				int numRecNext = nextHeader.getInt();
+				int offsetNext = nextHeader.getInt();
+				int firstSlotIDNext = nextHeader.getInt();
+				int lastSlotIDNext = nextHeader.getInt();
+				nextSlotID = firstSlotIDNext;
+				
+				// Read the intro of the following "subPayload"
+				nextSlotOffset = slotIDToSlotOffset(nextSlotID);
+				nextIntro = ByteBuffer.wrap(cs.readChunk(nextHandle, nextSlotOffset, IntroSize));
+				nextMetaType = nextIntro.get();
+				nextSubType = nextIntro.get();
+				nextLength = nextIntro.getInt();
+				
+				// If the following "subPayload" is Meta
+				if (nextMetaType == Meta) {
+					break;
+				}
+			}
+			
+			RID nextRID = new RID();
+			
+			// Iterate through all the Meta records
+			while (true) {
+				
+				// If it is Meta & Entire
+				if (nextMetaType == Meta && nextSubType == Entire) {
+					nextRID.setChunkHandle(nextHandle);
+					nextRID.setSlotID(nextSlotID);
+					break;
+				}
+				
+				// If it is Meta & Sub
+				else if (nextMetaType == Meta && nextSubType == Sub) {
+					
+					// Find the chunk handle, and slot ID of the following "subPayload"
+					nextHandle = chunkHandles.get(chunkHandles.indexOf(nextHandle) + 1);
+					ByteBuffer nextHeader = ByteBuffer.wrap(cs.readChunk(nextHandle, 0, ChunkServer.HeaderSize));
+					int numRecNext = nextHeader.getInt();
+					int offsetNext = nextHeader.getInt();
+					int firstSlotIDNext = nextHeader.getInt();
+					int lastSlotIDNext = nextHeader.getInt();
+					nextSlotID = firstSlotIDNext;
+					
+					// Read the intro of the following "subPayload"
+					nextSlotOffset = slotIDToSlotOffset(nextSlotID);
+					nextIntro = ByteBuffer.wrap(cs.readChunk(nextHandle, nextSlotOffset, IntroSize));
+					nextMetaType = nextIntro.get();
+					nextSubType = nextIntro.get();
+					nextLength = nextIntro.getInt();
+				}
+				
+				else {
+					return ClientFS.FSReturnVals.Fail;
+				}
+			}
+			
+			rec.setPayload(nextPayload);
+			rec.setRID(nextRID);
+			return ClientFS.FSReturnVals.Success;
 		}
 		
 		return ClientFS.FSReturnVals.Fail;
