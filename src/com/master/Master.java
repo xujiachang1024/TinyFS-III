@@ -26,7 +26,7 @@ import com.client.FileHandle;
 
 public class Master {
 	
-	public static final String masterBackupFileName = "masterBackup";
+	public static final String masterBackupFileName = "masterBackup.log";
 	
 	// HashMap<'full folder path w/ trailing '/'', 'set of files/folders in it'>
 	private static HashMap<String, HashSet<String>> directories;
@@ -60,13 +60,15 @@ public class Master {
 	 * Initialize in-memory data structure for the master node
 	 */
 	private void initializeMemory() {
-		// Create a new HashMap and populate it with '/'
-		directories = new HashMap<String, HashSet<String>>();
-		directories.put("/", new HashSet<String>());
-		
-		files = new HashMap<String, Vector<String>>();
-		
-		chunkLocations = new HashMap<String, Vector<String>>();
+		if (!readMasterBackup()) {
+			// Create a new HashMap and populate it with '/'
+			directories = new HashMap<String, HashSet<String>>();
+			directories.put("/", new HashSet<String>());
+			
+			files = new HashMap<String, Vector<String>>();
+			
+			chunkLocations = new HashMap<String, Vector<String>>();
+		}
 	}
 	
 	/**
@@ -105,7 +107,7 @@ public class Master {
 	 * Read master backup from a designated file
 	 */
 	@SuppressWarnings("unchecked")
-	private void readMasterBackup() {
+	private boolean readMasterBackup() {
 		FileInputStream fis = null;
 		ObjectInputStream ois = null;
 		try {
@@ -114,6 +116,7 @@ public class Master {
 			directories = (HashMap<String, HashSet<String>>)ois.readObject();
 			files = (HashMap<String, Vector<String>>)ois.readObject();
 			chunkLocations = (HashMap<String, Vector<String>>)ois.readObject();
+			return true;
 		} catch (FileNotFoundException fnfe) {
 			fnfe.printStackTrace();
 		} catch (IOException ioe) {
@@ -136,6 +139,7 @@ public class Master {
 				}
 			}
 		}
+		return false;
 	}
 	
 	/**
@@ -505,5 +509,11 @@ public class Master {
 		}
 		
 		return ClientFS.FSReturnVals.Fail;
+	}
+	
+	public FSReturnVals close() {
+		// Save the state of the master when it closes (checkpointing)
+		saveMasterBackup();
+		return ClientFS.FSReturnVals.Success;
 	}
 }
