@@ -409,7 +409,7 @@ public class ClientRec {
 				else if (sub == Entire && meta == Meta) {
 					RID newRID = new RID();
 					newRID.setChunkHandle(chunkHandle);
-					newRID.setSlotID(firstSlotID);
+					newRID.setSlotID(slotID);
 					rec.setRID(newRID);
 					rec.setPayload(recPayload);
 					
@@ -492,7 +492,7 @@ public class ClientRec {
 				else if (sub == Entire && meta == Meta) {
 					RID newRID = new RID();
 					newRID.setChunkHandle(chunkHandle);
-					newRID.setSlotID(firstSlotID);
+					newRID.setSlotID(slotID);
 					rec.setRID(newRID);
 					rec.setPayload(recPayload);
 					
