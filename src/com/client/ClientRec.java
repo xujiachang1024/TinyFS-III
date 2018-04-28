@@ -159,7 +159,7 @@ public class ClientRec {
 		}
 		
 		// Contruct meta payload if # of rids > 1
-		if (rids.size() > 1) {
+		while (rids.size() > 1) {
 			
 			// Initialize the "metaPayload" array and its temp copy
 			byte[] metaPayload = new byte[0];
@@ -195,12 +195,37 @@ public class ClientRec {
 				subMetaPayloads.add(Arrays.copyOfRange(metaPayload, startIndex, endIndex));
 			}
 			
-			Vector<RID> ridForMeta = new Vector<RID>();
+			rids.clear();
 			for (int i = 0; i < subMetaPayloads.size(); i++) {
 				byte[] effMetaPayload = subMetaPayloads.get(i);
 				boolean success = false;
 				while (!success) {
+					String lastHandle = ofh.getChunkHandles().lastElement();
+					String effHandle = lastHandle;
+					ByteBuffer header = ByteBuffer.wrap(cs.readChunk(effHandle, 0, ChunkServer.HeaderSize));
+					int numRec = header.getInt();
+					int offset = header.getInt();
+					int firstSlot = header.getInt();
+					int lastSlot = header.getInt();
+					metaNeededSpace = MetaByteSize + SubByteSize + LengthSize + effMetaPayload.length + SlotSize;
+					int freeSpace = (slotIDToSlotOffset(lastSlot)) - offset;
 					
+					if (metaNeededSpace <= freeSpace) {
+						byte subType = Entire;
+						if (bigMetaRecord) {
+							subType = Sub;
+						}
+						rids.add(writeToChunk(effMetaPayload, numRec, offset, effHandle, lastHandle, Meta, subType, lastSlot, firstSlot));
+						success = true;
+					}
+					
+					else {
+						offset = slotIDToSlotOffset(lastSlot);
+						byte[] headerInfo = ByteBuffer.allocate(4).putInt(offset).array();
+						cs.writeChunk(effHandle, headerInfo, 4);
+						master.AddChunk(ofh.getFilePath());
+						master.OpenFile(ofh.getFilePath(), ofh);
+					}
 				}
 			}
 		}
