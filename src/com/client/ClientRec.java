@@ -159,9 +159,24 @@ public class ClientRec {
 		}
 		
 		// Contruct meta payload if # of rids > 1
-		
-		
-		RecordID = rids.lastElement();
+		if (rids.size() > 1) {
+			
+			// Initialize the "metaPayload" array and its temp copy
+			byte[] metaPayload = new byte[0];
+			byte[] tempPayload = new byte[0];
+			
+			// Loop throught the "rids" vector and build the "metaPayload" array
+			for (int i = 0; i < rids.size(); i++) {
+				RID rid = rids.get(i);
+				byte[] handle = rid.getChunkHandle().getBytes();
+				byte[] slot = ByteBuffer.allocate(SlotSize).putInt(rid.getSlotID()).array();
+				metaPayload = new byte[tempPayload.length + handle.length + slot.length];
+				System.arraycopy(tempPayload, 0, metaPayload, 0, tempPayload.length);
+				System.arraycopy(handle, 0, metaPayload, tempPayload.length, handle.length);
+				System.arraycopy(slot, 0, metaPayload, tempPayload.length + handle.length, slot.length);
+				tempPayload = Arrays.copyOf(metaPayload, metaPayload.length);
+			}
+		}
 		
 		return ClientFS.FSReturnVals.Success;
 	}
