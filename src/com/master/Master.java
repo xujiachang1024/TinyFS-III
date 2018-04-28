@@ -118,7 +118,7 @@ public class Master {
 			chunkLocations = (HashMap<String, Vector<String>>)ois.readObject();
 			return true;
 		} catch (FileNotFoundException fnfe) {
-			fnfe.printStackTrace();
+			System.out.println("File not found!");
 		} catch (IOException ioe) {
 			ioe.printStackTrace();
 		} catch (ClassNotFoundException cnfe) {
