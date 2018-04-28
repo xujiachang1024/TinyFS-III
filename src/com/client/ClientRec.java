@@ -451,7 +451,7 @@ public class ClientRec {
 			return ClientFS.FSReturnVals.BadHandle;
 
 		String chunkHandle = rec.getRID().getChunkHandle();
-		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, 8));
+		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, ChunkServer.HeaderSize));
 		int slotID = pivot.getSlotID();
 		// on 4/23/18 we discussed that our implementation would be to nullify records by setting slotID = -1
 		if (header == null || slotID == -1)
@@ -461,7 +461,9 @@ public class ClientRec {
 		int numRec = header.getInt();
 		// Read the next free offset/free slot
 		int offset = header.getInt();
-		
+		int firstSlotID = header.getInt();
+		int lastSlotID = header.getInt();
+		byte[] recPayload = new byte[0];
 		// pivot trying to access invalid index
 //		if (slotID < header size)
 //			return ClientFS.FSReturnVals.RecDoesNotExist;
