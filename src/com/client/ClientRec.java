@@ -178,7 +178,7 @@ public class ClientRec {
 			}
 			
 			// Calculate the needed space and number of needed chunks for the "metaPayload"
-			long metaNeededSpace = MetaByteSize + SubByteSize + LengthSize + payload.length + SlotSize;
+			long metaNeededSpace = MetaByteSize + SubByteSize + LengthSize + metaPayload.length + SlotSize;
 			int numMeta = (int)Math.ceil((double)metaNeededSpace / MaxNonHeaderSize);
 			
 			// Decide whether the "metaPayload" is big
@@ -196,7 +196,7 @@ public class ClientRec {
 				int endIndex = (i+1) * MaxRawPayloadSize;
 				
 				// If this is the last smaller chunks
-				if (i == num - 1) {
+				if (i == (numMeta - 1)) {
 					endIndex = metaPayload.length;
 				}
 				
@@ -362,37 +362,39 @@ public class ClientRec {
 		if (header == null)
 			return ClientFS.FSReturnVals.RecDoesNotExist;
 		
-		// Read the number of records
-		int numRec = header.getInt();
-		// Read the next free offset/free slot
-		int offset = header.getInt();
-		// Read the first record offset
-		int firstRec = header.getInt();
-		
-		ByteBuffer intro = ByteBuffer.wrap(cs.readChunk(first, slotIDToSlotOffset(firstRec), 4));
-		int chunkloc = intro.getInt(); 
-		ByteBuffer chunkdata = ByteBuffer.wrap(cs.readChunk(first, chunkloc, 6));
-		byte meta = chunkdata.get();
-		byte sub = chunkdata.get();
-		int length = chunkdata.getInt();
-		byte[] recPayload = new byte[0];
-		if (meta == Meta) {
+		//while (true) {
+			// Read the number of records
+			int numRec = header.getInt();
+			// Read the next free offset/free slot
+			int offset = header.getInt();
+			// Read the first record offset
+			int firstRec = header.getInt();
 			
-		}
-		else if(sub ==Sub) {
+			ByteBuffer intro = ByteBuffer.wrap(cs.readChunk(first, slotIDToSlotOffset(firstRec), 4));
+			int chunkloc = intro.getInt(); 
+			ByteBuffer chunkdata = ByteBuffer.wrap(cs.readChunk(first, chunkloc, 6));
+			byte meta = chunkdata.get();
+			byte sub = chunkdata.get();
+			int length = chunkdata.getInt();
+			byte[] recPayload = new byte[0];
+			if (meta == Meta) {
+				
+			}
+			else if(sub ==Sub) {
+				
+			}
+			else if(meta == Regular && sub == Entire) {
+				recPayload = cs.readChunk(first, chunkloc+6, length);
+			}
+			RID newRID = new RID();
+			newRID.setChunkHandle(first);
+			newRID.setSlotID(firstRec);
+			rec.setRID(newRID);
+			rec.setPayload(recPayload);
 			
-		}
-		else if(meta == Regular && sub == Regular) {
-			recPayload = cs.readChunk(first, chunkloc+6, length);
-		}
-		RID newRID = new RID();
-		newRID.setChunkHandle(first);
-		newRID.setSlotID(firstRec);
-		rec.setRID(newRID);
-		rec.setPayload(recPayload);
-		
-		return ClientFS.FSReturnVals.Success;	
-		}
+			return ClientFS.FSReturnVals.Success;	
+		//}
+	}
 
 	/**
 	 * Reads the last record of the file specified by ofh into payload Returns
@@ -433,7 +435,7 @@ public class ClientRec {
 		else if (sub == Sub) {
 			
 		}
-		else if(meta == Regular && sub == Regular) {
+		else if(meta == Regular && sub == Entire) {
 			recPayLoad = cs.readChunk(chunkHandle, lastRecID+6, recLen);
 		}
 		
@@ -515,7 +517,7 @@ public class ClientRec {
 					else if (sub == Sub) {
 						
 					}
-					else if(meta == Regular && sub == Regular) {
+					else if(meta == Regular && sub == Entire) {
 						recPayLoad = cs.readChunk(chunkHandle, nextRecOffset+6, recLen);
 					}
 					
@@ -602,7 +604,7 @@ public class ClientRec {
 					else if (sub == Sub) {
 						
 					}
-					else if(meta == Regular && sub == Regular) {
+					else if(meta == Regular && sub == Entire) {
 						recPayLoad = cs.readChunk(chunkHandle, prevRecOffset+6, recLen);
 					}
 					
