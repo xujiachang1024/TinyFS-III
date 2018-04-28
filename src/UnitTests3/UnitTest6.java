@@ -6,8 +6,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 
+import com.chunkserver.ChunkServer;
 import com.client.ClientFS;
 import com.client.ClientFS.FSReturnVals;
+import com.master.Master;
 import com.client.ClientRec;
 import com.client.FileHandle;
 import com.client.RID;
@@ -22,6 +24,10 @@ public class UnitTest6 {
 	static final String TestName = "Unit Test 6: ";
 
 	public static void main(String[] args) throws Exception {
+		// Create temporary master and chunkserver to be shared throughout the testing
+		ChunkServer cs = new ChunkServer();
+		Master master = new Master(cs);
+				
 		String SuperHeros[] = {"Superman", "Batman", "Wonderwoman", "ElastiGirl", "Supergirl", "Aquagirl", "DreamGirl", "DynaGirl", "SpiderMan", "AntMan", "Thor", "HalJordan", "CaptainAmerica",
 				"MartianManhunter", "DickGrayson", "Thing", "HumanTorch", "MrFantastic", "InvisibleWoman", "Superboy"};
 		String dir1 = "Shahram";
@@ -30,14 +36,14 @@ public class UnitTest6 {
 		System.out.println(TestName + "Verify the chunk size is set to 1 MB, i.e., 1024*1024.");
 		
 		
-		ClientFS cfs = new ClientFS();
+		ClientFS cfs = new ClientFS(master);
 		FSReturnVals fsrv = cfs.CreateDir("/", dir1);
 		if ( fsrv != FSReturnVals.Success ){
 			System.out.println("Unit test 6 result: fail!");
     		return;
 		}
 		int intSize = Integer.SIZE / Byte.SIZE;	// 4 bytes
-		ClientRec crec = new ClientRec();
+		ClientRec crec = new ClientRec(master, cs);
 		
 		System.out.println(TestName + "Create two files for superheroes: One for the name and the other for their images.");
 		//Create two TinyFS filenames, one for the images and a second for the names

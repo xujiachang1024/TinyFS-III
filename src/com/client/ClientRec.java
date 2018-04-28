@@ -131,18 +131,6 @@ public class ClientRec {
 					
 					rids.add(writeToChunk(effPayload, numRec, offset, effHandle, lastHandle, Regular, subType, lastSlot, firstSlot));
 					
-//					// Append to res payload
-//					if (bigRecord) {
-//						RID curr = rids.lastElement();
-//						byte[] temp = res;
-//						byte[] handle = curr.getChunkHandle().getBytes();
-//						byte[] slot = ByteBuffer.allocate(4).putInt(curr.getSlotID()).array();
-//						res = new byte[temp.length+handle.length+slot.length];
-//						
-//						System.arraycopy(temp, 0, res, 0, temp.length);
-//						System.arraycopy(handle, 0, res, temp.length, handle.length);
-//						System.arraycopy(slot, 0, res, temp.length+handle.length, slot.length);
-//					}
 					// Indicate success
 					success = true;
 				}
