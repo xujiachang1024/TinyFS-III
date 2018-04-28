@@ -4,13 +4,15 @@ import com.chunkserver.ChunkServer;
 import com.client.ClientFS;
 import com.client.FileHandle;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-
+import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -26,7 +28,9 @@ import com.client.FileHandle;
 
 public class Master {
 	
-	public static final String masterBackupFileName = "masterBackup.log";
+	public static final String masterBackupFileName = "masterBackup.check";
+	public static final String masterBackupLogName = "masterBackup.log";
+	public static final int MaxLogRow = 100;
 	
 	// HashMap<'full folder path w/ trailing '/'', 'set of files/folders in it'>
 	private static HashMap<String, HashSet<String>> directories;
@@ -515,5 +519,33 @@ public class Master {
 		// Save the state of the master when it closes (checkpointing)
 		saveMasterBackup();
 		return ClientFS.FSReturnVals.Success;
+	}
+	
+	public FSReturnVals appendLog(String operation, String[] arguements) {
+		try
+		{
+			// Update the log file
+			FileWriter fw;
+			PrintWriter pw;
+			// Create file if not exist
+			File logFile = new File(masterBackupLogName);
+			if (!logFile.exists()) {
+				fw = new FileWriter(logFile);
+				pw = new PrintWriter(fw);
+				
+				pw.println(0);
+			}
+			fw = new FileWriter(logFile, true);
+			pw = new PrintWriter(fw);
+			
+			
+			
+			return ClientFS.FSReturnVals.Success;
+		}
+		catch(IOException ioe)
+		{
+			System.out.println("Logging failed");
+		}
+		return ClientFS.FSReturnVals.Fail;
 	}
 }
