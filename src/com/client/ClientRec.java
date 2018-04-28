@@ -343,30 +343,6 @@ public class ClientRec {
 
 		return ClientFS.FSReturnVals.Success;
 	}
-	
-	public FSReturnVals DeleteRecordAlt(FileHandle ofh, RID RecordID) {
-		if (ofh == null) {
-			return ClientFS.FSReturnVals.BadHandle;
-		}
-		if (ofh.getFilePath() == null)
-			return ClientFS.FSReturnVals.BadHandle;
-		
-		if (RecordID == null) {
-			return ClientFS.FSReturnVals.BadRecID;
-		}
-		// Check if given chunkHandle exist in the file
-		Vector<String> chunkHandles = ofh.getChunkHandles();
-		String chunkHandle = RecordID.getChunkHandle();
-		if (!chunkHandles.contains(chunkHandle)) {
-			return ClientFS.FSReturnVals.BadHandle;
-		}
-		
-		int slotID = RecordID.getSlotID();
-		
-		
-		
-		return ClientFS.FSReturnVals.Success;
-	}
 
 	/**
 	 * Reads the first record of the file specified by ofh into payload Returns
