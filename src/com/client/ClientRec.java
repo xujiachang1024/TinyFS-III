@@ -15,6 +15,8 @@ public class ClientRec {
 	// Constants for calculating record size
 	public static final int MetaByteSize = 1;
 	public static final int SubByteSize = 1;
+	public static final int LengthSize = 4;
+	public static final int IntroSize = MetaByteSize + SubByteSize + LengthSize;
 	
 	// Meta vs Regular
 	public static final byte Meta = 1;
@@ -24,7 +26,6 @@ public class ClientRec {
 	public static final byte Entire = 0;
 	
 	public static final int SlotSize = 4;
-	public static final int LengthSize = 4;
 	public static final int MaxNonHeaderSize = ChunkServer.ChunkSize - ChunkServer.HeaderSize;
 	public static final int MaxRawPayloadSize = MaxNonHeaderSize - MetaByteSize - SubByteSize - LengthSize - SlotSize;
 	
@@ -537,6 +538,118 @@ public class ClientRec {
 		
 		
 	}
+	
+	public FSReturnVals ReadNextRecordAlt(FileHandle ofh, RID pivot, TinyRec rec) {
+		
+		if (ofh == null) {
+			return ClientFS.FSReturnVals.BadHandle;
+		}
+		if (pivot == null) {
+			return ClientFS.FSReturnVals.RecDoesNotExist;
+		}
+		
+		Vector<String> chunkHandles = ofh.getChunkHandles();
+		String pivotHandle = pivot.getChunkHandle();
+		int pivotSlotID = pivot.getSlotID();
+		
+		if (chunkHandles.indexOf(pivotHandle) == -1) {
+			return ClientFS.FSReturnVals.RecDoesNotExist;
+		}
+		if (pivotSlotID == SlotNullified) {
+			return ClientFS.FSReturnVals.RecDoesNotExist;
+		}
+		
+		// Read the pivot chunk header
+		ByteBuffer pivotHeader = ByteBuffer.wrap(cs.readChunk(pivotHandle, 0, ChunkServer.HeaderSize));
+		if (pivotHeader == null) {
+			return ClientFS.FSReturnVals.RecDoesNotExist;
+		}
+		int numRec = pivotHeader.getInt();
+		int offset = pivotHeader.getInt();
+		int firstSlotID = pivotHeader.getInt();
+		int lastSlotID = pivotHeader.getInt();
+		
+		// Read the pivot record
+		ByteBuffer pivotIntro = ByteBuffer.wrap(cs.readChunk(pivotHandle, slotIDToSlotOffset(pivotSlotID), MetaByteSize + SubByteSize));
+		if (pivotIntro == null) {
+			return ClientFS.FSReturnVals.RecDoesNotExist;
+		}
+		byte pivotMetaType = pivotIntro.get();
+		byte pivotSubType = pivotIntro.get();
+		
+		// If the pivot is a sub record
+		if (pivotSubType == Sub) {
+			return ClientFS.FSReturnVals.RecDoesNotExist;
+		}
+		
+		// Find out the starting point of the next record
+		String nextHandle = pivotHandle;
+		int nextSlotID = pivotSlotID + 1;
+		
+		// If the "pivotSlotID" is the "lastSlotID", find another starting point
+		if (pivotSlotID == lastSlotID) {
+			
+			while (true) {
+				// Retrieve the next chunk handle
+				int pivotIndex = chunkHandles.indexOf(pivotHandle);
+				if (pivotIndex >= chunkHandles.size()) {
+					return ClientFS.FSReturnVals.RecDoesNotExist;
+				}
+				nextHandle = chunkHandles.get(pivotIndex + 1);
+				
+				// Retrieve the next slot ID
+				ByteBuffer nextHeader = ByteBuffer.wrap(cs.readChunk(nextHandle, 0, ChunkServer.HeaderSize));
+				if (nextHeader == null) {
+					return ClientFS.FSReturnVals.RecDoesNotExist;
+				}
+				int numRecNext = nextHeader.getInt();
+				int offsetNext = nextHeader.getInt();
+				int firstSlotIDNext = nextHeader.getInt();
+				int lastSlotIDNext = nextHeader.getInt();
+				
+				// If the next chunk is not empty
+				if (numRecNext > 0) {
+					nextSlotID = firstSlotIDNext;
+					break;
+				}
+				else {
+					pivotHandle = nextHandle;
+					continue;
+				}
+			}
+
+		}
+		
+		// Read the intro of the next record
+		int nextSlotOffset = slotIDToSlotOffset(nextSlotID);
+		ByteBuffer nextIntro = ByteBuffer.wrap(cs.readChunk(nextHandle, nextSlotOffset, IntroSize));
+		if (nextIntro == null) {
+			return ClientFS.FSReturnVals.RecDoesNotExist;
+		}
+		byte nextMetaType = nextIntro.get();
+		byte nextSubType = nextIntro.get();
+		int nextLength = nextIntro.getInt();
+		
+		// If the next record is Regular & Entire
+		if (nextMetaType == Regular && nextSubType == Entire) {
+			byte[] nextPayload = cs.readChunk(nextHandle, nextSlotOffset + IntroSize, nextLength);
+			RID nextRID = new RID();
+			nextRID.setChunkHandle(nextHandle);
+			nextRID.setSlotID(nextSlotID);
+			rec.setPayload(nextPayload);
+			rec.setRID(nextRID);
+			return ClientFS.FSReturnVals.Success;
+		}
+		
+		// If the next record is Regular & Sub
+		else if (nextMetaType == Regular && nextSubType == Sub) {
+			
+		}
+		
+		return ClientFS.FSReturnVals.Fail;
+	}
+	
+	
 
 	/**
 	 * Reads the previous record after the specified pivot of the file specified
