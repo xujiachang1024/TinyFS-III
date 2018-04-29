@@ -456,15 +456,16 @@ public class ClientRec {
 		
 		Vector<String> chunkHandles = ofh.getChunkHandles();
 		int index = chunkHandles.size() - 1;
-		String chunkHandle = chunkHandles.get(index);			
-		ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, ChunkServer.HeaderSize));
-		if (header == null)
-			return ClientFS.FSReturnVals.RecDoesNotExist;
 		
 		byte[] recPayload = new byte[0];
 		while (index >= 0) {
+			String chunkHandle = chunkHandles.get(index);			
+			ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, ChunkServer.HeaderSize));
+			if (header == null)
+				return ClientFS.FSReturnVals.RecDoesNotExist;
 		// Read the number of records
 			int numRec = header.getInt();
+			
 			if (numRec == 0) {
 				index--;
 				if (index < 0)
@@ -661,8 +662,26 @@ public class ClientRec {
 		if (ind == -1)
 			return ClientFS.FSReturnVals.BadHandle;
 		
-		//working on it
+		// Check if current pivot is valid
+		int pivotRecOffset = ByteBuffer.wrap(cs.readChunk(chunkHandle, slotIDToSlotOffset(pivotSlotID), SlotSize)).getInt();
+		if (pivotRecOffset == SlotNullified) {
+			return ClientFS.FSReturnVals.RecDoesNotExist;
+		}
+		ByteBuffer pivotIntro = ByteBuffer.wrap(cs.readChunk(chunkHandle, pivotRecOffset, MetaByteSize + SubByteSize));
+		if (pivotIntro == null) {
+			return ClientFS.FSReturnVals.RecDoesNotExist;
+		}
+		byte pivotMetaType = pivotIntro.get();
+		byte pivotSubType = pivotIntro.get();
+
+		// If the pivot is a sub record
+		if (pivotSubType == Sub) {
+			return ClientFS.FSReturnVals.RecDoesNotExist;
+		}
+		
+		byte[] recPayload = new byte[0];
 		while (ind >= 0) {
+			chunkHandle = chunkHandles.get(ind);
 			ByteBuffer header = ByteBuffer.wrap(cs.readChunk(chunkHandle, 0, ChunkServer.ChunkSize));
 			// on 4/23/18 we discussed that our implementation would be to nullify records by setting slotID = -1
 			if (header == null || pivotSlotID == -1)
@@ -675,53 +694,60 @@ public class ClientRec {
 			int firstSlotID = header.getInt();
 			int lastSlotID = header.getInt();
 			
-			byte[] recPayLoad = new byte[0];
-			
-			// if there are no more prev records in the chunk
-			if ((numRec == 0) || (prevSlotID < firstSlotID)) {
-				// Get the prev chunk
-				ind--;
-				// Reset the prevSlotID to start of
-				prevSlotID = 408;
-				if (ind == -1)
-					return ClientFS.FSReturnVals.RecDoesNotExist;
-				chunkHandle = chunkHandles.get(ind);
-			}
-			// if the next record within the chunk
-			else if (prevSlotID >= firstSlotID) {
-				if (prevSlotID > lastSlotID)
-					prevSlotID = lastSlotID;
-				ByteBuffer prevSlot = ByteBuffer.wrap(cs.readChunk(chunkHandle, slotIDToSlotOffset(prevSlotID), 4));
-				int prevRecOffset = prevSlot.getInt();
-				
-				if (prevRecOffset != -1) {
-					ByteBuffer prevRec = ByteBuffer.wrap(cs.readChunk(chunkHandle, prevRecOffset, 6));		
-					byte meta = prevRec.get();
-					byte sub = prevRec.get();
-					int recLen = prevRec.getInt();
-					if(meta == Meta) {
-						
-					}
-					else if (sub == Sub) {
-						
-					}
-					else if(meta == Regular && sub == Entire) {
-						recPayLoad = cs.readChunk(chunkHandle, prevRecOffset+6, recLen);
-					}
-					
-					RID newRID = new RID();
-					newRID.setChunkHandle(chunkHandle);
-					newRID.setSlotID(prevSlotID);
-					rec.setRID(newRID);
-					rec.setPayload(recPayLoad);
-					
-					return ClientFS.FSReturnVals.Success;
+			while (prevSlotID >= firstSlotID) {
+				// if there are no more prev records in the chunk
+				if (numRec == 0) {
+					break;
 				}
-				prevSlotID--;
+				// if the next record within the chunk
+				else if (prevSlotID >= firstSlotID) {
+					if (prevSlotID > lastSlotID)
+						prevSlotID = lastSlotID;
+					ByteBuffer prevSlot = ByteBuffer.wrap(cs.readChunk(chunkHandle, slotIDToSlotOffset(prevSlotID), 4));
+					int prevRecOffset = prevSlot.getInt();
+					
+					if (prevRecOffset != -1) {
+						ByteBuffer prevRec = ByteBuffer.wrap(cs.readChunk(chunkHandle, prevRecOffset, 6));		
+						byte meta = prevRec.get();
+						byte sub = prevRec.get();
+						int recLen = prevRec.getInt();
+						if(sub ==Sub && meta == Regular) {
+							byte[] tempPayload = new byte[recPayload.length + recLen];
+							byte[] currPayload = cs.readChunk(chunkHandle, prevRecOffset+IntroSize, recLen);
+							
+							System.arraycopy(recPayload, 0, tempPayload, 0, recPayload.length);
+							System.arraycopy(currPayload, 0, tempPayload, recPayload.length, currPayload.length);
+											
+							recPayload = tempPayload;
+						}
+						else if (sub == Entire && meta == Meta) {
+							RID newRID = new RID();
+							newRID.setChunkHandle(chunkHandle);
+							newRID.setSlotID(prevSlotID);
+							rec.setRID(newRID);
+							rec.setPayload(recPayload);
+							
+							return ClientFS.FSReturnVals.Success;
+						}
+						else if(meta == Regular && sub == Entire) {
+							recPayload = cs.readChunk(chunkHandle, prevRecOffset+6, recLen);
+							RID newRID = new RID();
+							newRID.setChunkHandle(chunkHandle);
+							newRID.setSlotID(prevSlotID);
+							rec.setRID(newRID);
+							rec.setPayload(recPayload);
+							
+							return ClientFS.FSReturnVals.Success;
+						}
+					}
+					prevSlotID--;
+				}
 			}
+			ind--;
+			prevSlotID = Integer.MAX_VALUE;
 		}
 				
-		return ClientFS.FSReturnVals.Fail;
+		return ClientFS.FSReturnVals.RecDoesNotExist;
 		
 		
 	}
