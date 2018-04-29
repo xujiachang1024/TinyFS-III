@@ -266,6 +266,11 @@ public class ClientRec {
 			}
 		}
 		
+		// Get the last RID
+		RID lastRID = rids.lastElement();
+		RecordID.setChunkHandle(lastRID.getChunkHandle());
+		RecordID.setSlotID(lastRID.getSlotID());
+		
 		return ClientFS.FSReturnVals.Success;
 	}
 
