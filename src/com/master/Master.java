@@ -543,48 +543,52 @@ public class Master {
 	}
 	
 	public FSReturnVals appendLog(String operation, String[] arguments) {
-		try
-		{
-			Vector<String> operations = new Vector<String>();
-			int row = readLog(operations);
-			if (row >= MaxLogRow) {
-				// if log file too long
-				// save the memory structures (checkpointing)
-				saveMasterBackup();
-				
-				// Delete old log
-				File log = new File(masterBackupLogName);
-				log.delete();
-				
-				// Reset the log info
-				row = 0;
-				operations.clear();
-			}
-			
-			FileWriter fw = new FileWriter(masterBackupLogName);
-			PrintWriter pw = new PrintWriter(fw);
-			
-			pw.println(++row);
-			String args = "";
-			for(int i=0;i<arguments.length;i++) {
-				args += arguments[i];
-				if (i < (arguments.length - 1))
-					args += ',';
-			}
-			for (int i=0; i<operations.size(); i++)
-				pw.println(operations.get(i));
-			pw.printf("%d,%s,%s", (new Timestamp(System.currentTimeMillis())).getTime(), operation, args);
-			
-			pw.flush();
-			pw.close();
-			
-			return ClientFS.FSReturnVals.Success;
-		}
-		catch(IOException ioe)
-		{
-			System.out.println("Logging failed");
-		}
-		return ClientFS.FSReturnVals.Fail;
+//		try
+//		{
+//			Vector<String> operations = new Vector<String>();
+//			int row = readLog(operations);
+//			if (row >= MaxLogRow) {
+//				// if log file too long
+//				// save the memory structures (checkpointing)
+//				saveMasterBackup();
+//				
+//				// Delete old log
+//				File log = new File(masterBackupLogName);
+//				log.delete();
+//				
+//				// Reset the log info
+//				row = 0;
+//				operations.clear();
+//			}
+//			
+//			FileWriter fw = new FileWriter(masterBackupLogName);
+//			PrintWriter pw = new PrintWriter(fw);
+//			
+//			pw.println(++row);
+//			String args = "";
+//			for(int i=0;i<arguments.length;i++) {
+//				args += arguments[i];
+//				if (i < (arguments.length - 1))
+//					args += ',';
+//			}
+//			for (int i=0; i<operations.size(); i++)
+//				pw.println(operations.get(i));
+//			pw.printf("%d,%s,%s", (new Timestamp(System.currentTimeMillis())).getTime(), operation, args);
+//			
+//			pw.flush();
+//			pw.close();
+//			
+//			return ClientFS.FSReturnVals.Success;
+//		}
+//		catch(IOException ioe)
+//		{
+//			System.out.println("Logging failed");
+//		}
+//		return ClientFS.FSReturnVals.Fail;
+		
+		saveMasterBackup();
+		
+		return ClientFS.FSReturnVals.Success;
 	}
 	
 	public int readLog(Vector<String> operations) {
