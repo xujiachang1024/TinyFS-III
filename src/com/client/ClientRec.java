@@ -74,8 +74,7 @@ public class ClientRec {
 		
 		// Then determine sub or regular
 		
-		long neededSpace = MetaByteSize + SubByteSize + LengthSize + payload.length + SlotSize;
-		int num = (int)Math.ceil((double)neededSpace / MaxNonHeaderSize);
+		int num = (int)Math.ceil((double)payload.length / MaxRawPayloadSize);
 		
 		boolean bigRecord = false;
 		// If it is a big record
@@ -125,8 +124,8 @@ public class ClientRec {
 				int lastSlot = header.getInt();
 
 				// payload + offset info + length info + type info
-				neededSpace = MetaByteSize + SubByteSize + LengthSize + effPayload.length + SlotSize;
-				int freeSpace = (slotIDToSlotOffset(lastSlot)) - offset;
+				long neededSpace = MetaByteSize + SubByteSize + LengthSize + effPayload.length + SlotSize;
+				long freeSpace = (slotIDToSlotOffset(lastSlot)) - offset;
 
 				// if the space needed fits within the current chunk
 				if (neededSpace <= freeSpace) {
@@ -184,8 +183,7 @@ public class ClientRec {
 			}
 			
 			// Calculate the needed space and number of needed chunks for the "metaPayload"
-			long metaNeededSpace = MetaByteSize + SubByteSize + LengthSize + metaPayload.length + SlotSize;
-			int numMeta = (int)Math.ceil((double)metaNeededSpace / MaxNonHeaderSize);
+			int numMeta = (int)Math.ceil((double)metaPayload.length / MaxRawPayloadSize);
 			
 			// Decide whether the "metaPayload" is big
 			boolean bigMetaRecord = false;
@@ -233,8 +231,8 @@ public class ClientRec {
 					int lastSlot = header.getInt();
 					
 					// Calculate the needed space for this smaller metaPayload
-					metaNeededSpace = MetaByteSize + SubByteSize + LengthSize + effMetaPayload.length + SlotSize;
-					int freeSpace = (slotIDToSlotOffset(lastSlot)) - offset;
+					long metaNeededSpace = MetaByteSize + SubByteSize + LengthSize + effMetaPayload.length + SlotSize;
+					long freeSpace = (slotIDToSlotOffset(lastSlot)) - offset;
 					
 					// If this smaller metaPaylaod can fit into this chunk
 					if (metaNeededSpace <= freeSpace) {
@@ -438,6 +436,7 @@ public class ClientRec {
 				}
 				slotID++;
 			}
+			index++;
 		}
 		
 		return ClientFS.FSReturnVals.Fail;
@@ -522,6 +521,7 @@ public class ClientRec {
 				}
 				slotID--;
 			}
+			index--;
 		}
 		return ClientFS.FSReturnVals.Fail;
 	}
